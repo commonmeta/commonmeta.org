@@ -1,7 +1,7 @@
 {
   "index": "Introduction",
-  "another": "Another Page",
-  "advanced": "Advanced (A Folder)",
+  "schema": "JSON Schema",
+  "implementations": "Implementations",
   "about": {
     "title": "About",
     "type": "page"

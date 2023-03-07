@@ -13,7 +13,7 @@ const config: DocsThemeConfig = {
   logoLink: 'https://commonmeta.org',
   docsRepositoryBase: 'https://github.com/front-matter/commonmeta/tree/main',
   footer: {
-    text: 'Commonmeta Documentation',
+    text: 'Commonmeta',
   },
   head: (
     <>
