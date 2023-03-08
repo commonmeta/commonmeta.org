@@ -21,8 +21,9 @@ const config: DocsThemeConfig = {
       <meta property="og:title" content="Commonmeta" />
       <meta
         property="og:description"
-        content="Documentation for the Commometa metadata file format."
+        content="Documentation for the Commometa format."
       />
+      <link rel="shortcut icon" href="favicon.ico" />
     </>
   ),
 }
