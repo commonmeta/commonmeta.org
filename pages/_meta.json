@@ -1,7 +1,7 @@
 {
   "index": "Introduction",
-  "schema": "JSON Schema",
   "implementations": "Implementations",
+  "schema": "JSON Schema",
   "about": {
     "title": "About",
     "type": "page"
