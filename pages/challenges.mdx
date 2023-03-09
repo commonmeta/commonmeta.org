@@ -1,0 +1,86 @@
+# Challenges
+
+### Serialization formats
+
+Scholarly metadata use several serialization formats. Some formats such as `bibtex`, `ris` (defined 
+in the 1980s) and [anvl](https://datatracker.ietf.org/doc/html/draft-kunze-anvl-01) require
+a dedicated parser, something that should be avoided. `xml` is mainly used by DOI registration agencies,
+and parsing is more time-consuming and complex compared to metadata using `json`. `json-ld` combines
+the strengths and weaknesses of `xml` and `json` (e.g. namespaces, but also added complexity). `yaml` 
+(used by `cff`) is a superset of `json` and is easier to write for humans, but slower than `json`
+and not widely used for network calls, but rather for local files. `toml`is an alternative to `yaml`,
+but I haven't seen it used for scholarly metadata.
+
+In summary, `json` is the preferred serialization format for scholarly metadata, and is widely used
+for that, in particular in REST APIs. `xml` is mainly used for historical reasons, mainly for 
+DOI registration (although DataCite has depreciated this in favor of JSON).
+
+### Type Safety
+
+The scholarly metadata formats take various approaches to what data type (e.g. string vs. integer,
+or list/array vs. dict/object/hash) they expect for a given field. Some are more flexible, in particular
+`Schema.org JSON-LD`, but that flexibility comes at a price in form of parsing overhead and breaking 
+tools. A related issue is the handling of None/null/nil which adds flexibility for optional metadata
+fields but again adds overhead. Type safety can facilitate metadata parsing and is increasingly adopted
+in dynamic languages such as Javascript, Python and Ruby, so commonmeta will support it in its JSON Schema.
+
+### Legacy of Dublin Core
+
+Dublin Core (and the formats heavily innfluenced by it such as `datacite` and `schema.org`) have had an
+and important influence on scholarly metadata. Unfortunately some decisions made more than 25 years ago
+haven't worked so well, and some of the newer metadata formats have made different decisions. Of course
+all metadata formats sometimes made decisions that in hindsight didn't work so well (e.g. date-parts in
+`CSL-JSON` or type `PostedContent` in `Crossref`), so this is more a sign of the strong influence Dublin Core
+had on the development of scholarly metadata, and the goal of being generic sometimes making specific things
+harder.
+
+One example is metadata only required for some resource types and therefore not part of Dublin Core, e.g.
+page numbers, or journal name and issn. This requires complex workarounds or leads to incomplete metadata
+you see when you for example want to express DataCite DOI metadata in a formatted `citation`. Another example
+(which you see predominantly with DataCite) is to lump all related resources together, in this case using
+`relatedIdentifier` and `relationType`, and since 2021 also `relatedItem`. This makes the easy difficult, 
+in this case listing all the references used in a resource, some of them using a DOI, some of them only having
+metadata.
+
+### Author Names
+
+Author names is a major topic of complixity in scholarly metadata. Authors can be people or organizations,
+and for people separate given and family names are needed for some scholarly metadata, e.g `bibtex` or
+`citations`. Metadata from formats that only provide a single `name` field for authors therefore need
+to be processed, and this can be tricky (e.g. as the name for a person can be either `family, given` or 
+`given family`). Commonmeta (just like Crossref and CSL-JSON) uses `givenName` and `familyName` for 
+personal names, `name` for organizations, and `type` (which can be either `Person` or `Organization`) to 
+distinguish between the two.
+
+### Dates
+
+Dates are another major topic of complexity in scholarly metadata. Scholarly resources can have multiple
+dates associated with them (e.g. `submission_date`, `acceptance_date` and `publication_date`), and each 
+date can be expressed with different levels of granularity (e.g. year-month-day, year-month, or year). Then
+there are dates foof different granularity (e.g. `Summer 2017`), approximate dates, and date ranges. 
+Extended Date and Time Format ([EDTF](https://www.loc.gov/standards/datetime/)) and the underlying 
+[ISO8601](https://www.iso.org/iso-8601-date-and-time-format.html) is the community standard to
+cover these various dates and times, but is only partially supported by most metadata standards and tools.
+`crossref` and `CSL-JSON` use `date-parts` to define partial dates and date ranges.
+
+### Resource Types
+
+Describing the type of scholarly resource is important, but unfortunately many vocabularies exist.
+As they all have their strenghts and weaknesses and no existing vocabulary handles all resource types encountered
+in commonmeta, commometa is building an internal vocabulary to support as many mappings as possible.
+
+### Versioning
+
+Versioning has historically not been much of an issue with text publications, where at most we had a handful of 
+versions that could be sorted chronologically and one *current* version. With datasets and software this was
+always different with easily hundreds of versions that sometimes have a complex relationship to each other.
+This kind of versioning is best described by `hasVersion` and `isVersionOf` relationships, and more work
+is needed for commonmeta to address this. This topic is also relevant for preprints, where preprint and journal
+article are published in different places and the relationship is not generated automatically.
+
+### Collections and Parts
+
+Again a topic historically not much of an issue with text publications. Besides the obvious: books can 
+have chapters (possibly with different authors), and journals have issues which in turn have articles.
+Again this topic is much more complicated with datasets or software, where the decision for how to split up the data
+or code is almost arbitrary. Something commonmeta needs to support.

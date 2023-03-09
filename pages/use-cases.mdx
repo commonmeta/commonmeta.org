@@ -1,0 +1,42 @@
+# Use Cases
+
+### Reference Managers
+
+Reference managers are tools that help building a database of the relevant literature for a researcher or
+student, and for inserting citations and the bibliography into a manuscript. Import and export of these
+references is important, and BibTex and RIS are the most commonly used file formats. Reference management
+increasingly is happening in an online environment, sometimes requiring different file formats or additional
+information, e.g. all recent publications by a specific author or specific institution. Commonmeta can 
+help to facilitate this.
+
+### Formatted Citations
+
+Citation Style Language ([CSL](https://citationstyles.org/)) is the standard Open Source framework for
+generating formatted citations and bibliographies, with over 10,000 citation styles supported and integrations 
+into many tools and services. CSL uses its own metadata format (CSL-JSON), so metadata in other formats 
+first have to be converted. Because of its focus on formatted citations, CSL-JSON lacks support for some
+features commonly found in scholarly metadata, e.g. persistent identifiers for people and organizations, or funding 
+information. 
+
+The other big issue with formatted citations is that they don't work very well as input
+format (because of the large number of available citation styles, DOIs not included in many citation styles, 
+and citation styles typically not indicating the content type such as dataset). This is a huge problem with
+journal manuscripts submitted via manuscript submission systems. The two common workarounds – requiring a 
+specific citation style, and turning the formatted citations back into structured metadata using lots of 
+human and/or compute resources – are not good solutions. The simplest solution is to include
+identifiers in the formatted citation, prefereably a DOI or other persistent identifier, or alternatively a
+URL. Commonmeta-based tools and can help in this workflow.
+
+### DOI Content Negotiation
+
+Many scholarly resources (more than 150 million) use DOIs as persistent identifiers. These DOIs have
+standardized metadata, at least per DOI Registration Agency (Crossref, DataCite, etc.). DOI Content 
+Negotiation is a standard mechanism to obtain these metadata in a variety of formats, and Commonmeta 
+can help simplify this format conversion.
+
+### Software Metadata
+
+Metadata for software can be expressed in a variety of formats, including the emerging new formats 
+`codemeta` and `cff`. Commonmeta can help simplify metadata conversions for software, e.g. to more generic 
+formats like `bibtex` or as formatted `citation`.
+

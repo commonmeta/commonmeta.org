@@ -1,5 +1,7 @@
 {
   "index": "Introduction",
+  "use-cases": "Use Cases",
+  "challenges": "Challenges",
   "implementations": "Implementations",
   "schema": "JSON Schema",
   "about": {
