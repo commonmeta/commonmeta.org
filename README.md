@@ -4,4 +4,4 @@ A metadata standard for scholarly metadata, available via its [website](https://
 
 ## License
 
-This project is licensed under the [MIT License](https://github.com/front-matter/commonmeta/blob/main/LICENSE).
+This project is licensed under the [MIT License](https://github.com/commonmeta/commonmeta/blob/main/LICENSE).
