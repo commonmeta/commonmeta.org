@@ -1,12 +1,3 @@
-import { Callout } from 'nextra-theme-docs'
-
-# JSON Schema
-
-<Callout type="warning">
-  The JSON Schema is under active development and not considered stable until version 1.0.
-</Callout>
-
-``` json copy
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://commonmeta.org/commonmeta_v0.10.3.json",
@@ -537,4 +528,3 @@ import { Callout } from 'nextra-theme-docs'
     "date"
   ]
 }
-```
