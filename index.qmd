@@ -20,7 +20,7 @@ Commonmeta can and should support additional formats for metadata import and/or 
 Codemeta and Commonmark are important inspirations for Commonmeta, both in name and philosophy. They share these priciples:
 
 :::{.callout-tip}
-## Commonmeta Principles
+## Principles
 
 * driven by real-world implementations and not committees
 * features that focus on what is common in existing implementations/formats
