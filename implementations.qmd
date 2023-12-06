@@ -35,7 +35,7 @@ _Later_: we plan to implement this format in a later release.
 
 ### commonmeta-ruby (Ruby)
 
-commonmeta-ruby is a rewrite (and rename) of the [Briard Ruby Gem](https://github.com/front-matter/briard).
+commonmeta-ruby is a rewrite (and rename) of the Briard Ruby Gem, which in turn was based on the [Bolognese Gem](https://rubygems.org/gems/bolognese).
 
 [![Gem Version](https://badge.fury.io/rb/commonmeta-ruby.svg)](https://badge.fury.io/rb/commonmeta-ruby)
 
