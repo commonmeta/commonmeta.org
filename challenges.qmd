@@ -1,4 +1,6 @@
-# Challenges
+---
+title: Challenges
+---
 
 ### Serialization formats
 

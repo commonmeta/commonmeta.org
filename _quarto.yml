@@ -1,0 +1,40 @@
+project:
+  type: website
+  output-dir: _site
+  preview:
+    port: 4400
+execute:
+  freeze: true
+website:
+  title: "Commonmeta"
+  favicon: favicon.ico
+  navbar:
+    background: light
+    logo: "/images/icon.png"
+    logo-alt: "Commonmeta"
+    right:
+      - icon: github
+        href: https://github.com/commonmeta/commonmeta
+  sidebar:
+    contents:
+      - index.qmd
+      - challenges.qmd
+      - implementations.qmd
+      - use-cases.qmd
+      - schema.qmd
+  page-footer:
+    left: "Copyright &copy;2023 Commonmeta."
+    right:
+      - icon: envelope
+        href: mailto:info@front-matter.io
+      - icon: mastodon 
+        href: https://rogue-scholar.social/@admin
+
+format:
+  html:
+    theme:
+      light: [flatly, theme.scss]
+      dark: [darkly, theme.scss]
+    page-layout: article
+    toc: true
+    toc-location: right

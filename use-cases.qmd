@@ -1,4 +1,6 @@
-# Use Cases
+---
+title: Use Cases
+---
 
 ### Reference Managers
 
@@ -15,8 +17,7 @@ Citation Style Language ([CSL](https://citationstyles.org/)) is the standard Ope
 generating formatted citations and bibliographies, with over 10,000 citation styles supported and integrations 
 into many tools and services. CSL uses its own metadata format (CSL-JSON), so metadata in other formats 
 first have to be converted. Because of its focus on formatted citations, CSL-JSON lacks support for some
-features commonly found in scholarly metadata, e.g. persistent identifiers for people and organizations, or funding 
-information. 
+features commonly found in scholarly metadata, e.g. persistent identifiers for people and organizations, or funding information. 
 
 The other big issue with formatted citations is that they don't work very well as input
 format (because of the large number of available citation styles, DOIs not included in many citation styles, 

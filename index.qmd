@@ -1,6 +1,6 @@
-import { Callout } from 'nextra-theme-docs'
-
-# Introduction
+---
+title: Introduction
+---
 
 Commonmeta is a metadata standard for scholarly metadata. Commonmeta focuses on tools and services, helping them to convert metadata between the various formats. Commonmeta is defined and can be validated with JSON Schema. Supported formats include:
 
@@ -19,12 +19,13 @@ Commonmeta can and should support additional formats for metadata import and/or 
 
 Codemeta and Commonmark are important inspirations for Commonmeta, both in name and philosophy. They share these priciples:
 
+:::{.callout-tip}
+## Commonmeta Principles
 
-<Callout type="info">
-  * driven by real-world implementations and not committees
-  * features that focus on what is common in existing implementations/formats
-  * a testable specification
-</Callout>
+* driven by real-world implementations and not committees
+* features that focus on what is common in existing implementations/formats
+* a testable specification
+:::
 
 ### Codemeta
 
