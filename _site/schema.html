@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.4.504">
+<meta name="generator" content="quarto-1.4.549">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -63,6 +63,7 @@ ul.task-list li input[type="checkbox"] {
     "search-more-match-text": "more match in this document",
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
     "search-detached-cancel-button-title": "Cancel",
     "search-submit-button-title": "Submit",
     "search-label": "Search"
@@ -196,8 +197,8 @@ Warning
 </div>
 <pre><code>{
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://commonmeta.org/commonmeta_v0.10.5.json",
-  "title": "Commonmeta v0.10.5",
+  "$id": "https://commonmeta.org/commonmeta_v0.10.8.json",
+  "title": "Commonmeta v0.10.8",
   "description": "JSON representation of the Commonmeta schema.",
   "additionalProperties": false,
   "definitions": {
@@ -314,6 +315,7 @@ Warning
         "Journal",
         "PeerReview",
         "PhysicalObject",
+        "Presentation",
         "ProceedingsArticle",
         "ProceedingsSeries",
         "Proceedings",
@@ -321,6 +323,7 @@ Warning
         "ReportSeries",
         "Report",
         "Software",
+        "StudyRegistration",
         "Other"
       ]
     },
@@ -448,6 +451,10 @@ Warning
             "description": "The type of the title.",
             "type": "string",
             "enum": ["AlternativeTitle", "Subtitle", "TranslatedTitle"]
+          },
+          "language": {
+            "description": "The language of the title. Use one of the language codes from the IETF BCP 47 standard.",
+            "type": "string"
           }
         },
         "required": ["title"]
@@ -457,8 +464,12 @@ Warning
       "description": "The container of the resource.",
       "type": "object",
       "properties": {
-        "id": {
+        "identifier": {
           "description": "The identifier for the container.",
+          "type": "string"
+        },
+        "identifierType": {
+          "description": "The identifierType for the container.",
           "type": "string"
         },
         "type": {
@@ -467,16 +478,33 @@ Warning
           "enum": [
             "Book",
             "BookSeries",
-            "DataCatalog",
             "Journal",
-            "Periodical",
+            "Proceedings",
             "ProceedingsSeries",
             "Repository",
+            "DataRepository",
+            "Periodical",
             "Series"
           ]
         },
         "title": {
           "description": "The title of the container.",
+          "type": "string"
+        },
+        "firstPage": {
+          "description": "The first page of the resource.",
+          "type": "string"
+        },
+        "lastPage": {
+          "description": "The last page of the resource.",
+          "type": "string"
+        },
+        "volume": {
+          "description": "The volume of the resource.",
+          "type": "string"
+        },
+        "issue": {
+          "description": "The issue of the resource.",
           "type": "string"
         }
       }
@@ -573,7 +601,7 @@ Warning
               "Reviews",
               "IsPreprintOf",
               "HasPreprint",
-              "isSupplementTo"
+              "IsSupplementTo"
             ]
           }
         },
@@ -619,7 +647,11 @@ Warning
           "type": {
             "description": "The type of the description.",
             "type": "string",
-            "enum": ["Abstract", "Description", "Summary"]
+            "enum": ["Abstract", "Summary", "Methods", "TechnicalInfo", "Other"]
+          },
+          "language": {
+            "description": "The language of the title. Use one of the language codes from the IETF BCP 47 standard.",
+            "type": "string"
           }
         },
         "required": ["description"]
@@ -670,7 +702,7 @@ Warning
     "provider": {
       "description": "The provider of the resource. This can be a DOI registration agency or a repository.",
       "type": "string",
-      "enum": ["Crossref", "DataCite", "GitHub", "JaLC", "KISTI", "mEDRA", "OP"]
+      "enum": ["Crossref", "DataCite", "GitHub", "JaLC", "KISTI", "mEDRA", "OP", "InvenioRDM"]
     },
     "alternate_identifiers": {
       "description": "Alternate identifiers for the resource.",
@@ -704,7 +736,7 @@ Warning
       "description": "The schema version of the resource.",
       "type": "string",
       "enum": [
-        "https://commonmeta.org/commonmeta_v0.10.5.json",
+        "https://commonmeta.org/commonmeta_v0.10",
         "http://datacite.org/schema/kernel-3",
         "http://datacite.org/schema/kernel-4"
       ]
@@ -719,7 +751,14 @@ Warning
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["CLOCKSS", "LOCKSS", "Portico", "KB", "Internet Archive", "DWT"]
+        "enum": [
+          "CLOCKSS",
+          "LOCKSS",
+          "Portico",
+          "KB",
+          "Internet Archive",
+          "DWT"
+        ]
       },
       "uniqueItems": true
     }
@@ -1010,27 +1049,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       }
     }
     stripColumnClz(note)
-    const typesetMath = (el) => {
-      if (window.MathJax) {
-        // MathJax Typeset
-        window.MathJax.typeset([el]);
-      } else if (window.katex) {
-        // KaTeX Render
-        var mathElements = el.getElementsByClassName("math");
-        var macros = [];
-        for (var i = 0; i < mathElements.length; i++) {
-          var texText = mathElements[i].firstChild;
-          if (mathElements[i].tagName == "SPAN") {
-            window.katex.render(texText.data, mathElements[i], {
-              displayMode: mathElements[i].classList.contains('display'),
-              throwOnError: false,
-              macros: macros,
-              fleqn: false
-            });
-          }
-        }
-      }
-    }
     if (id === null || id.startsWith('sec-')) {
       // Special case sections, only their first couple elements
       const container = document.createElement("div");
@@ -1045,10 +1063,14 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             break;
           }
         }
-        typesetMath(container);
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
         return container.innerHTML
       } else {
-        typesetMath(note);
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
         return note.innerHTML;
       }
     } else {
@@ -1057,8 +1079,15 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (anchorLink) {
         anchorLink.remove();
       }
-      typesetMath(note);
-      return note.innerHTML;
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
     }
   }
   for (var i=0; i<xrefs.length; i++) {
