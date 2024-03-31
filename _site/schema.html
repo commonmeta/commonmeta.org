@@ -197,8 +197,8 @@ Warning
 </div>
 <pre><code>{
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://commonmeta.org/commonmeta_v0.10.8.json",
-  "title": "Commonmeta v0.10.8",
+  "$id": "https://commonmeta.org/commonmeta_v0.12.json",
+  "title": "Commonmeta v0.12",
   "description": "JSON representation of the Commonmeta schema.",
   "additionalProperties": false,
   "definitions": {
@@ -234,6 +234,7 @@ Warning
         "Reader",
         "Translator",
         "ContactPerson",
+        "DataCollector",
         "DataManager",
         "Distributor",
         "HostingInstitution",
@@ -301,13 +302,20 @@ Warning
         "Article",
         "Audiovisual",
         "BookChapter",
+        "BookPart",
+        "BookSection",
         "BookSeries",
+        "BookSet",
         "Book",
+        "Collection",
         "Component",
+        "Database",
         "Dataset",
         "Dissertation",
         "Document",
+        "Entry",
         "Grant",
+        "Image",
         "Instrument",
         "JournalArticle",
         "JournalIssue",
@@ -323,7 +331,9 @@ Warning
         "ReportSeries",
         "Report",
         "Software",
+        "Standard",
         "StudyRegistration",
+        "WebPage",
         "Other"
       ]
     },
@@ -345,7 +355,8 @@ Warning
         "properties": {
           "id": {
             "description": "The unique identifier for the contributor.",
-            "type": "string"
+            "type": "string",
+            "format": "uri"
           },
           "type": {
             "description": "The type of the contributor.",
@@ -393,7 +404,8 @@ Warning
       "properties": {
         "id": {
           "description": "The identifier for the publisher.",
-          "type": "string"
+          "type": "string",
+          "format": "uri"
         },
         "name": {
           "description": "The name of the publisher.",
@@ -425,6 +437,10 @@ Warning
         },
         "updated": {
           "description": "The date the resource was updated.",
+          "type": "string"
+        },
+        "accessed": {
+          "description": "The date the resource was accessed.",
           "type": "string"
         },
         "available": {
@@ -575,14 +591,15 @@ Warning
       },
       "uniqueItems": true
     },
-    "related_identifiers": {
+    "relations": {
       "description": "Other resolvable persistent unique IDs related to the resource.",
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "format": "uri"
           },
           "type": {
             "type": "string",
@@ -597,11 +614,14 @@ Warning
               "IsOriginalFormOf",
               "IsIdenticalTo",
               "IsTranslationOf",
+              "HasTranslation",
               "IsReviewedBy",
               "Reviews",
+              "HasReview",
               "IsPreprintOf",
               "HasPreprint",
-              "IsSupplementTo"
+              "IsSupplementTo",
+              "IsSupplementedBy"
             ]
           }
         },
@@ -702,7 +722,16 @@ Warning
     "provider": {
       "description": "The provider of the resource. This can be a DOI registration agency or a repository.",
       "type": "string",
-      "enum": ["Crossref", "DataCite", "GitHub", "JaLC", "KISTI", "mEDRA", "OP", "InvenioRDM"]
+      "enum": [
+        "Crossref",
+        "DataCite",
+        "GitHub",
+        "JaLC",
+        "KISTI",
+        "mEDRA",
+        "OP",
+        "InvenioRDM"
+      ]
     },
     "alternate_identifiers": {
       "description": "Alternate identifiers for the resource.",
@@ -737,6 +766,8 @@ Warning
       "type": "string",
       "enum": [
         "https://commonmeta.org/commonmeta_v0.10",
+        "https://commonmeta.org/commonmeta_v0.11",
+        "https://commonmeta.org/commonmeta_v0.12",
         "http://datacite.org/schema/kernel-3",
         "http://datacite.org/schema/kernel-4"
       ]
@@ -744,7 +775,7 @@ Warning
     "state": {
       "description": "The state of the resource.",
       "type": "string",
-      "enum": ["findable", "not_found"]
+      "enum": ["findable", "not_found", "forbidden", "bad_request"]
     },
     "archive_locations": {
       "description": "The location where content is archived.",
@@ -763,15 +794,7 @@ Warning
       "uniqueItems": true
     }
   },
-  "required": [
-    "id",
-    "type",
-    "url",
-    "contributors",
-    "titles",
-    "publisher",
-    "date"
-  ]
+  "required": ["id", "type"]
 }</code></pre>
 
 
@@ -1312,7 +1335,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <footer class="footer">
   <div class="nav-footer">
     <div class="nav-footer-left">
-<p>Copyright ©2023 Commonmeta.</p>
+<p>Copyright ©2023-2024 Commonmeta.</p>
 </div>   
     <div class="nav-footer-center">
       &nbsp;
@@ -1326,7 +1349,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     </a>
   </li>  
     <li class="nav-item compact">
-    <a class="nav-link" href="https://rogue-scholar.social/@admin">
+    <a class="nav-link" href="https://wisskomm.social/@rogue_scholar">
       <i class="bi bi-mastodon" role="img">
 </i> 
     </a>
