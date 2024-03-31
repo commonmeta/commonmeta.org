@@ -1,0 +1,6 @@
+# flyctl launch added from .gitignore
+**/.DS_Store
+**/node_modules
+
+.quarto
+fly.toml
