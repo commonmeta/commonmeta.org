@@ -1,6 +1,6 @@
 project:
   type: website
-  output-dir: _site
+  output-dir: pb_public
   preview:
     port: 4400
 execute:
