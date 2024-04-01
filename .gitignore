@@ -2,3 +2,4 @@
 node_modules
 
 /.quarto/
+pb_data/*
