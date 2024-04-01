@@ -21,8 +21,8 @@ FROM --platform=$BUILDPLATFORM python:3.12-slim-bookworm as runtime
 # COPY --from=builder /usr/local/bin/quarto /usr/local/bin/quarto
 COPY --from=builder /pb/ /pb/
 COPY ./ /pb/
-COPY ./pb_public /pb/pb_public
-COPY ./pb_migrations /pb/pb_migrations
+COPY pb_public /pb/pb_public
+COPY pb_migrations /pb/pb_migrations
 WORKDIR /pb
 
 # uncomment to copy the local pb_hooks dir into the container
