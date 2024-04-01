@@ -9,8 +9,8 @@ ADD https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/po
 ADD https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.deb /tmp/quarto-${QUARTO_VERSION}-linux-amd64.deb
 RUN apt-get update && apt-get install -y \
     curl unzip gdebi-core ca-certificates && \
-    unzip /tmp/pocketbase_${PB_VERSION}_linux_amd64.zip -d /pb/ && \
-    dpkg -i /tmp/quarto-${QUARTO_VERSION}-linux-amd64.deb
+    unzip /tmp/pocketbase_${PB_VERSION}_linux_amd64.zip -d /pb/
+    # dpkg -i /tmp/quarto-${QUARTO_VERSION}-linux-amd64.deb
 
 FROM --platform=$BUILDPLATFORM python:3.12-slim-bookworm as runtime
 
@@ -18,7 +18,7 @@ FROM --platform=$BUILDPLATFORM python:3.12-slim-bookworm as runtime
 #     apt-get install curl unzip -y --no-install-recommends && \
 #     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /usr/local/bin/quarto /usr/local/bin/quarto
+# COPY --from=builder /usr/local/bin/quarto /usr/local/bin/quarto
 COPY --from=builder /pb/ /pb/
 COPY ./ /pb/
 COPY ./pb_public /pb/pb_public
