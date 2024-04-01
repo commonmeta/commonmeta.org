@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y \
 # COPY --from=builder /usr/local/bin/quarto /usr/local/bin/quarto
 # COPY --from=builder /pb/ /pb/
 # COPY ./ /pb/
-# COPY ./pb_public /pb/pb_public
+COPY ./pb_public /pb/pb_public
 COPY ./pb_migrations /pb/pb_migrations
 # WORKDIR /pb
 
