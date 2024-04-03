@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
 
+	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -22,6 +24,29 @@ func main() {
 	// serves static files from the provided public dir (if exists)
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./pb_public"), false))
+		return nil
+	})
+
+	// retrieve a single "works" collection record by pid
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+		e.Router.GET("/:prefix/:suffix", func(c echo.Context) error {
+			prefix := c.PathParam("prefix")
+			suffix := c.PathParam("suffix")
+			if prefix == "" || suffix == "" {
+				return c.NoContent(404)
+			}
+
+			pid := fmt.Sprintf("https://doi.org/%s/%s", prefix, suffix)
+			record, err := app.Dao().FindFirstRecordByData("works", "pid", pid)
+			if err != nil {
+				return err
+			} else if record == nil {
+				return c.NoContent(404)
+			} else {
+				return c.JSON(200, record)
+			}
+		})
+
 		return nil
 	})
 
