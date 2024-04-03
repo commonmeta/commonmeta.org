@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y \
 
 FROM --platform=$BUILDPLATFORM python:3.12-slim-bookworm as runtime
 
-COPY --from=builder /pb/ /pb/
+# COPY --from=builder /pb/ /pb/
+COPY ./commonmeta /pb/pocketbase
 COPY ./pb_public /pb/pb_public
 COPY ./pb_migrations /pb/pb_migrations
 
