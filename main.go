@@ -21,12 +21,6 @@ func main() {
 	// loosely check if it was executed using "go run"
 	isGoRun := strings.HasPrefix(os.Args[0], os.TempDir())
 
-	// serves static files from the provided public dir (if exists)
-	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./pb_public"), false))
-		return nil
-	})
-
 	// retrieve a single "works" collection record by pid
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		e.Router.GET("/:prefix/:suffix", func(c echo.Context) error {
@@ -47,6 +41,12 @@ func main() {
 			}
 		})
 
+		return nil
+	})
+
+	// serves static files from the provided public dir (if exists)
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+		e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./pb_public"), false))
 		return nil
 	})
 
