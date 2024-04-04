@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/labstack/echo/v5"
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -30,6 +32,29 @@ func main() {
 				return c.NoContent(404)
 			} else {
 				return c.JSON(200, record)
+			}
+		})
+
+		return nil
+	})
+
+	// search and list works collection records
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+		e.Router.GET("/works", func(c echo.Context) error {
+			page := c.QueryParam("page")
+			if page == "" {
+				page = "1"
+			}
+			i, err := strconv.Atoi(page)
+			if err != nil {
+				return err
+			}
+			offset := (i - 1) * 25
+			records, err := app.Dao().FindRecordsByFilter("works", "type!='Rocket'", "-created", 25, offset, dbx.Params{"visible": true})
+			if err != nil {
+				return err
+			} else {
+				return c.JSON(200, records)
 			}
 		})
 
