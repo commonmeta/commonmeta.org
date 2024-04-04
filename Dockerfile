@@ -11,15 +11,14 @@ RUN apt-get update && apt-get install -y \
 
 FROM --platform=$BUILDPLATFORM python:3.12-slim-bookworm as runtime
 
-# COPY --from=builder /pb/ /pb/
-COPY ./commonmeta /pb/commonmeta
+COPY --from=builder /pb/ /pb/
 COPY ./pb_public /pb/pb_public
 COPY ./pb_migrations /pb/pb_migrations
 
 # uncomment to copy the local pb_hooks dir into the container
 # COPY ./pb_hooks /pb/pb_hooks
 
-EXPOSE 8090
+EXPOSE 8080
 
 # start PocketBase
-CMD ["/pb/commonmeta", "serve", "--http=0.0.0.0:8090"]
+CMD ["/pb/commonmeta", "serve", "--http=0.0.0.0:8080"]
