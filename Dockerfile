@@ -5,7 +5,8 @@ FROM --platform=$BUILDPLATFORM python:3.12-bookworm as builder
 # ARG PB_VERSION=0.22.7
 
 # ADD https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip /tmp/pocketbase_${PB_VERSION}_linux_amd64.zip
-ENV PATH="$PATH:/usr/local/go/bin"
+ENV PATH="$PATH:/usr/local/go/bin" \
+    GOCACHE="/tmp/gocache"
 
 RUN apt-get update && \
     wget -c https://go.dev/dl/go1.22.2.linux-amd64.tar.gz && \
@@ -20,7 +21,7 @@ COPY ./pb_public /pb/pb_public
 COPY ./pb_migrations /pb/pb_migrations
 WORKDIR /pb
 
-RUN CGO_ENABLED=0 go build
+RUN --mount=type=cache,target=$GOCACHE CGO_ENABLED=0 go build
     
 FROM --platform=$BUILDPLATFORM python:3.12-slim-bookworm as runtime
 

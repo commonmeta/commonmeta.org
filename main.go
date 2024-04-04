@@ -16,7 +16,7 @@ func main() {
 
 	// retrieve a single works collection record by doi
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		e.Router.GET("/doi.org/:doi", func(c echo.Context) error {
+		e.Router.GET("/works/:doi", func(c echo.Context) error {
 			doi := c.PathParam("doi")
 			if doi == "" {
 				return c.NoContent(404)
