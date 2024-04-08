@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"regexp"
+	"strings"
 
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
@@ -33,7 +35,8 @@ func main() {
 		return nil
 	})
 
-	// retrieve a single works collection record and redirect to its url
+	// retrieve a single works collection record and either redirect to its url
+	// or return metadata in a variety of formats
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		e.Router.GET("/:str", func(c echo.Context) error {
 			str := c.PathParam("str")
@@ -50,13 +53,35 @@ func main() {
 			} else {
 				pid = fmt.Sprintf("https://%s", str)
 			}
+			u, err := url.Parse(pid)
+			if err != nil {
+				return err
+			}
+			// check for linked-based content type
+			contentType := "text/html"
+			path := strings.Split(u.Path, "/")
+			if len(path) > 3 && path[len(path)-3] == "transform" {
+				u.Path = strings.Join(path[:len(path)-3], "/")
+				pid = u.String()
+				contentType = strings.Join(path[len(path)-2:], "/")
+			}
 			record, err := app.Dao().FindFirstRecordByData("works", "pid", pid)
 			if err != nil {
 				return err
 			} else if record == nil {
 				return c.NoContent(404)
-			} else {
+			}
+			switch contentType {
+			case "text/html":
+				// redirect to resource
 				return c.Redirect(302, record.GetString("url"))
+			case "application/vnd.commonmeta+json", "application/json":
+				// return metadata in commonmeta json format
+				return c.JSON(200, record)
+			default:
+				// contentType not supported
+				log.Println("Content-Type not supported:", contentType)
+				return c.NoContent(406)
 			}
 		})
 
