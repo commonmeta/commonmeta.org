@@ -12,7 +12,6 @@ RUN mkdir -p /pb
 COPY ./main.go /pb/main.go
 COPY ./go.mod /pb/go.mod
 COPY ./go.sum /pb/go.sum
-COPY ./pb_public /pb/pb_public
 WORKDIR /pb
 
 RUN CGO_ENABLED=0 go build
