@@ -33,7 +33,7 @@ func main() {
 		return nil
 	})
 
-	// retrieve a single works collection record by doi
+	// retrieve a single works collection record and redirect to its url
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		e.Router.GET("/:str", func(c echo.Context) error {
 			str := c.PathParam("str")
@@ -56,7 +56,7 @@ func main() {
 			} else if record == nil {
 				return c.NoContent(404)
 			} else {
-				return c.JSON(200, record)
+				return c.Redirect(302, record.GetString("url"))
 			}
 		})
 
