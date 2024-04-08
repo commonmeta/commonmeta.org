@@ -36,9 +36,10 @@ func main() {
 	})
 
 	// retrieve a single works collection record and either redirect to its url
-	// or return metadata in a variety of formats
+	// or return metadata depending on the Accept header
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		e.Router.GET("/:str", func(c echo.Context) error {
+			// fetch the pid
 			str := c.PathParam("str")
 			if str == "" {
 				return c.NoContent(404)
@@ -53,12 +54,18 @@ func main() {
 			} else {
 				pid = fmt.Sprintf("https://%s", str)
 			}
+
+			// Retrieve the content type from the Accept header,
+			// alternatively extract from the URL path
+			acceptHeaders := c.Request().Header.Get("Accept")
+			contentType := strings.Split(acceptHeaders, ",")[0]
+			if contentType == "" {
+				contentType = "text/html"
+			}
 			u, err := url.Parse(pid)
 			if err != nil {
 				return err
 			}
-			// check for linked-based content type
-			contentType := "text/html"
 			path := strings.Split(u.Path, "/")
 			if len(path) > 3 && path[len(path)-3] == "transform" {
 				u.Path = strings.Join(path[:len(path)-3], "/")
@@ -76,12 +83,11 @@ func main() {
 				// redirect to resource
 				return c.Redirect(302, record.GetString("url"))
 			case "application/vnd.commonmeta+json", "application/json":
-				// return metadata in commonmeta json format
+				// return metadata in commonmeta JSON format
 				return c.JSON(200, record)
 			default:
-				// contentType not supported
-				log.Println("Content-Type not supported:", contentType)
-				return c.NoContent(406)
+				// all other Content-Types not (yet) supported
+				return c.JSON(406, map[string]string{"error": fmt.Sprintf("Content-Type %s not supported", str)})
 			}
 		})
 
