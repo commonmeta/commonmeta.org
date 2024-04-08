@@ -18,13 +18,12 @@ func main() {
 
 	// retrieve a single works collection record by doi
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		e.Router.GET("/works/:doi", func(c echo.Context) error {
-			doi := c.PathParam("doi")
-			if doi == "" {
+		e.Router.GET("/works/:str", func(c echo.Context) error {
+			str := c.PathParam("str")
+			if str == "" {
 				return c.NoContent(404)
 			}
-
-			pid := fmt.Sprintf("https://doi.org/%s", doi)
+			pid := fmt.Sprintf("https://%s", str)
 			record, err := app.Dao().FindFirstRecordByData("works", "pid", pid)
 			if err != nil {
 				return err
