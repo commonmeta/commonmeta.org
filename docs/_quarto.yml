@@ -32,7 +32,7 @@ website:
       - icon: envelope
         href: mailto:info@front-matter.io
       - icon: mastodon 
-        href: https://wisskomm.social/@rogue_scholar
+        href: https://mozilla.social/@martin
 
 format:
   html:
