@@ -59,7 +59,7 @@ func main() {
 			// alternatively extract from the URL path
 			acceptHeaders := c.Request().Header.Get("Accept")
 			contentType := strings.Split(acceptHeaders, ",")[0]
-			if contentType == "" {
+			if contentType == "" || contentType == "*/*" {
 				contentType = "text/html"
 			}
 			u, err := url.Parse(pid)
@@ -87,7 +87,7 @@ func main() {
 				return c.JSON(200, record)
 			default:
 				// all other Content-Types not (yet) supported
-				return c.JSON(406, map[string]string{"error": fmt.Sprintf("Content-Type %s not supported", str)})
+				return c.JSON(406, map[string]string{"error": fmt.Sprintf("Content-Type %s not supported", contentType)})
 			}
 		})
 
