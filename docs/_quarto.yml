@@ -1,13 +1,17 @@
 project:
   type: website
-  output-dir: ../pb_public
+  output-dir: _site
   preview:
     port: 4400
 execute:
   freeze: true
 website:
-  title: "Commonmeta"
+  title: "Commonmeta Docs"
   favicon: favicon.ico
+  site-url: https://docs.commonmeta.org
+  repo-url: https://github.com/commonmeta/commonmeta
+  repo-subdir: docs
+  repo-actions: [edit, issue]
   navbar:
     background: light
     logo: "/images/icon.png"

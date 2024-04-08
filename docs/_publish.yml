@@ -1,0 +1,5 @@
+- source: project
+  netlify:
+    - id: b8e35558-9eff-4b3d-b3c0-a5e7354b8f27
+      url: 'https://docs-commonmeta.netlify.app'
+  
