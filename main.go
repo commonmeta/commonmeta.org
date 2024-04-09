@@ -15,6 +15,14 @@ import (
 func main() {
 	app := pocketbase.New()
 
+	type Reference struct {
+		Doi             string `json:"doi,omitempty"`
+		Url             string `json:"url,omitempty"`
+		Key             string `json:"key"`
+		PublicationYear string `json:"publicationYear,omitempty"`
+		Title           string `json:"title,omitempty"`
+	}
+
 	// redirect hard-coded legacy urls to docs site
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		e.Router.GET("/", func(c echo.Context) error {
@@ -78,12 +86,32 @@ func main() {
 			} else if record == nil {
 				return c.NoContent(404)
 			}
-			switch contentType {
-			case "text/html":
+
+			if contentType == "text/html" {
 				// redirect to resource
 				return c.Redirect(302, record.GetString("url"))
+			}
+
+			// extract references and look up their metadata
+			var r []Reference
+			err = record.UnmarshalJSONField("references", &r)
+			if err != nil {
+				return err
+			}
+			if len(r) > 0 {
+				// TODO: write correct filter query
+				references, err := app.Dao().FindRecordsByFilter("works", "pid~'abcd'", "", 0, 0)
+				if err != nil {
+					return err
+				}
+				if len(references) > 0 {
+					record.Set("references", references)
+				}
+			}
+
+			switch contentType {
 			case "application/vnd.commonmeta+json", "application/json":
-				// return metadata in commonmeta JSON format
+				// return metadata in Commonmeta format
 				return c.JSON(200, record)
 			default:
 				// all other Content-Types not (yet) supported
