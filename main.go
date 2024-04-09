@@ -25,6 +25,11 @@ func main() {
 		Title           string `json:"title,omitempty"`
 	}
 
+	type File struct {
+		Url      string `json:"url"`
+		MimeType string `json:"mimeType"`
+	}
+
 	// redirect hard-coded legacy urls to docs site
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		e.Router.GET("/", func(c echo.Context) error {
@@ -118,11 +123,35 @@ func main() {
 					record.Set("references", references)
 				}
 			}
+			// extract files and look up their metadata
+			var f []File
+			err = record.UnmarshalJSONField("files", &f)
+			if err != nil {
+				return err
+			}
+			files := make(map[string]string)
+			for _, v := range f {
+				files[v.MimeType] = v.Url
+			}
+			markdownUrl := files["text/markdown"]
+			pdfUrl := files["application/pdf"]
 
 			switch contentType {
 			case "application/vnd.commonmeta+json", "application/json":
 				// return metadata in Commonmeta format
 				return c.JSON(http.StatusOK, record)
+			case "text/markdown":
+				// redirect to markdown version of the resource if available
+				if markdownUrl == "" {
+					return c.JSON(http.StatusNotAcceptable, map[string]string{"error": "Markdown version not available"})
+				}
+				return c.Redirect(http.StatusFound, markdownUrl)
+			case "application/pdf":
+				// redirect to PDF version of the resource if available
+				if pdfUrl == "" {
+					return c.JSON(http.StatusNotAcceptable, map[string]string{"error": "PDF version not available"})
+				}
+				return c.Redirect(http.StatusFound, pdfUrl)
 			default:
 				// all other Content-Types not (yet) supported
 				return c.JSON(http.StatusNotAcceptable, map[string]string{"error": fmt.Sprintf("Content-Type %s not supported", contentType)})
