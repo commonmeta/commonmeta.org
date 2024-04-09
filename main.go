@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 
 	"github.com/labstack/echo/v5"
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -26,19 +28,19 @@ func main() {
 	// redirect hard-coded legacy urls to docs site
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		e.Router.GET("/", func(c echo.Context) error {
-			return c.Redirect(301, "https://docs.commonmeta.org/")
+			return c.Redirect(http.StatusMovedPermanently, "https://docs.commonmeta.org/")
 		})
 		e.Router.GET("/challenges.html", func(c echo.Context) error {
-			return c.Redirect(301, "https://docs.commonmeta.org/challenges.html")
+			return c.Redirect(http.StatusMovedPermanently, "https://docs.commonmeta.org/challenges.html")
 		})
 		e.Router.GET("/implementations.html", func(c echo.Context) error {
-			return c.Redirect(301, "https://docs.commonmeta.org/implementations.html")
+			return c.Redirect(http.StatusMovedPermanently, "https://docs.commonmeta.org/implementations.html")
 		})
 		e.Router.GET("/use-cases.html", func(c echo.Context) error {
-			return c.Redirect(301, "https://docs.commonmeta.org/use-cases.html")
+			return c.Redirect(http.StatusMovedPermanently, "https://docs.commonmeta.org/use-cases.html")
 		})
 		e.Router.GET("/schema.html", func(c echo.Context) error {
-			return c.Redirect(301, "https://docs.commonmeta.org/schema.html")
+			return c.Redirect(http.StatusMovedPermanently, "https://docs.commonmeta.org/schema.html")
 		})
 		return nil
 	})
@@ -50,7 +52,7 @@ func main() {
 			// fetch the pid
 			str := c.PathParam("str")
 			if str == "" {
-				return c.NoContent(404)
+				return c.NoContent(http.StatusNotFound)
 			}
 			isDoi, err := regexp.MatchString(`^10\.\d{4,9}/.+$`, str)
 			if err != nil {
@@ -89,7 +91,7 @@ func main() {
 
 			if contentType == "text/html" {
 				// redirect to resource
-				return c.Redirect(302, record.GetString("url"))
+				return c.Redirect(http.StatusFound, record.GetString("url"))
 			}
 
 			// extract references and look up their metadata
@@ -99,8 +101,16 @@ func main() {
 				return err
 			}
 			if len(r) > 0 {
-				// TODO: write correct filter query
-				references, err := app.Dao().FindRecordsByFilter("works", "pid~'abcd'", "", 0, 0)
+				refs := make([]interface{}, len(r))
+				for i, v := range r {
+					if v.Doi != "" {
+						refs[i] = v.Doi
+					} else if v.Url != "" {
+						refs[i] = v.Url
+					}
+				}
+				references, err := app.Dao().FindRecordsByExpr("works",
+					dbx.In("pid", refs...))
 				if err != nil {
 					return err
 				}
@@ -112,10 +122,10 @@ func main() {
 			switch contentType {
 			case "application/vnd.commonmeta+json", "application/json":
 				// return metadata in Commonmeta format
-				return c.JSON(200, record)
+				return c.JSON(http.StatusOK, record)
 			default:
 				// all other Content-Types not (yet) supported
-				return c.JSON(406, map[string]string{"error": fmt.Sprintf("Content-Type %s not supported", contentType)})
+				return c.JSON(http.StatusNotAcceptable, map[string]string{"error": fmt.Sprintf("Content-Type %s not supported", contentType)})
 			}
 		})
 
