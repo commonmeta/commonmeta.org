@@ -135,6 +135,10 @@ func main() {
 			}
 			markdownUrl := files["text/markdown"]
 			pdfUrl := files["application/pdf"]
+			jatsUrl := files["application/xml"]
+			if jatsUrl == "" {
+				jatsUrl = files["application/vnd.jats+xml"]
+			}
 
 			switch contentType {
 			case "application/vnd.commonmeta+json", "application/json":
@@ -146,6 +150,12 @@ func main() {
 					return c.JSON(http.StatusNotAcceptable, map[string]string{"error": "Markdown version not available"})
 				}
 				return c.Redirect(http.StatusFound, markdownUrl)
+			case "application/vnd.jats+xml", "application/xml":
+				// redirect to JATS XML version of the resource if available
+				if jatsUrl == "" {
+					return c.JSON(http.StatusNotAcceptable, map[string]string{"error": "JATS XML version not available"})
+				}
+				return c.Redirect(http.StatusFound, jatsUrl)
 			case "application/pdf":
 				// redirect to PDF version of the resource if available
 				if pdfUrl == "" {
