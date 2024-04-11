@@ -1,12 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/labstack/echo/v5"
@@ -115,33 +117,66 @@ func main() {
 				pid = fmt.Sprintf("https://%s", str)
 			}
 
-			// Retrieve the content type from the Accept header,
-			// alternatively extract from the URL path
-			acceptHeaders := c.Request().Header.Get("Accept")
-			contentType := strings.Split(acceptHeaders, ",")[0]
-			if contentType == "" || contentType == "*/*" {
-				contentType = "text/html"
-			}
+			// extract optional content type from the URL path
 			u, err := url.Parse(pid)
 			if err != nil {
 				return err
 			}
+			contentType := ""
 			path := strings.Split(u.Path, "/")
 			if len(path) > 3 && path[len(path)-3] == "transform" {
 				u.Path = strings.Join(path[:len(path)-3], "/")
 				pid = u.String()
+				str = strings.Join(path[1:len(path)-3], "/")
 				contentType = strings.Join(path[len(path)-2:], "/")
+			}
+
+			// alternatively extract the content type from the Accept header
+			if contentType == "" {
+				acceptHeaders := c.Request().Header.Get("Accept")
+				contentType := strings.Split(acceptHeaders, ",")[0]
+				if contentType == "" || contentType == "*/*" {
+					contentType = "text/html"
+				}
 			}
 
 			work, err := FindWorkByPid(app.Dao(), pid)
 			if err != nil {
 				return err
-			} else if work == nil {
-				return c.NoContent(404)
+			}
+
+			// supported content types
+			contentTypes := []string{"text/html", "application/vnd.commonmeta+json", "application/json", "text/markdown", "application/vnd.jats+xml", "application/xml", "application/pdf"}
+
+			if work == nil || !slices.Contains(contentTypes, contentType) {
+				// redirect pid if not found in the database
+				if contentType == "text/html" {
+					log.Printf("%s not found, redirecting...", pid)
+					return c.Redirect(http.StatusFound, pid)
+				} else if contentType == "application/vnd.commonmeta+json" || contentType == "application/json" {
+					// cant redirect with commonmeta content type
+					log.Printf("%s not found", pid)
+					return c.JSON(http.StatusNotFound, map[string]string{"error": "Work not found"})
+				}
+				// content negotiation is not supported for redirects
+				// look up the DOI registration agency in works table and use link-based content negotiation
+				ra, err := FindDoiRegistrationAgency(app.Dao(), pid)
+				if err != nil {
+					return err
+				}
+				switch ra {
+				case "Crossref":
+					return c.Redirect(http.StatusFound, fmt.Sprintf("https://api.crossref.org/works/%s/transform/%s", str, contentType))
+				case "DataCite":
+					return c.Redirect(http.StatusFound, fmt.Sprintf("https://data.crosscite.org/%s/%s", contentType, str))
+				default:
+					log.Printf("Doi registration agency for %s not found", pid)
+					return c.JSON(http.StatusNotFound, map[string]string{"error": "Work not found and content negotiation not supported"})
+				}
 			}
 
 			if contentType == "text/html" {
-				// redirect to resource
+				// redirect to resource if work found
 				return c.Redirect(http.StatusFound, work.Url)
 			}
 
@@ -246,7 +281,9 @@ func FindWorkByPid(dao *daos.Dao, pid string) (*Work, error) {
 		Limit(1).
 		One(work)
 
-	if err != nil {
+	if err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -272,4 +309,25 @@ func FindWorksByPids(dao *daos.Dao, pids ...string) ([]*Work, error) {
 	}
 
 	return works, nil
+}
+
+// find DOI registration agency from works collection
+func FindDoiRegistrationAgency(dao *daos.Dao, doi string) (string, error) {
+	substr := doi[0:24]
+	work := &Work{}
+
+	err := WorkQuery(dao).
+		AndWhere(dbx.NewExp("pid LIKE {:substr}", dbx.Params{
+			"substr": substr + "%",
+		})).
+		Limit(1).
+		One(work)
+
+	if err == sql.ErrNoRows {
+		return "", nil
+	} else if err != nil {
+		return "", err
+	}
+
+	return work.Provider, nil
 }
