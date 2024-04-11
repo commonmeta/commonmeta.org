@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,7 +13,51 @@ import (
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/daos"
+	"github.com/pocketbase/pocketbase/models"
+	"github.com/pocketbase/pocketbase/tools/types"
 )
+
+// ensures that the Work struct satisfy the models.Model interface
+var _ models.Model = (*Work)(nil)
+
+type Work struct {
+	models.BaseModel
+
+	// required fields
+	Pid  string `db:"pid" json:"id"`
+	Type string `db:"type" json:"type"`
+
+	// optional fields
+	AdditionalType       string        `db:"additional_type" json:"additional_type,omitempty"`
+	Url                  string        `db:"url" json:"url,omitempty"`
+	Contributors         types.JsonRaw `db:"contributors" json:"contributors,omitempty"`
+	Publisher            types.JsonRaw `db:"publisher" json:"publisher,omitempty"`
+	Date                 types.JsonRaw `db:"date" json:"date,omitempty"`
+	Titles               types.JsonRaw `db:"titles" json:"titles,omitempty"`
+	Container            types.JsonRaw `db:"container" json:"container,omitempty"`
+	Subjects             types.JsonRaw `db:"subjects" json:"subjects,omitempty"`
+	Sizes                types.JsonRaw `db:"sizes" json:"sizes,omitempty"`
+	Formats              types.JsonRaw `db:"formats" json:"formats,omitempty"`
+	Language             string        `db:"language" json:"language,omitempty"`
+	License              types.JsonRaw `db:"license" json:"license,omitempty"`
+	Version              string        `db:"version" json:"version,omitempty"`
+	References           types.JsonRaw `db:"references" json:"references,omitempty"`
+	Relations            types.JsonRaw `db:"relations" json:"relations,omitempty"`
+	FundingReferences    types.JsonRaw `db:"funding_references" json:"funding_references,omitempty"`
+	Descriptions         types.JsonRaw `db:"descriptions" json:"descriptions,omitempty"`
+	GeoLocations         types.JsonRaw `db:"geo_locations" json:"geo_locations,omitempty"`
+	Provider             string        `db:"provider" json:"provider,omitempty"`
+	AlternateIdentifiers types.JsonRaw `db:"alternate_identifiers" json:"alternate_identifiers,omitempty"`
+	Files                types.JsonRaw `db:"files" json:"files,omitempty"`
+	ArchiveLocations     types.JsonRaw `db:"archive_locations" json:"archive_locations,omitempty"`
+	Created              string        `db:"created" json:"created"`
+	Updated              string        `db:"updated" json:"updated"`
+}
+
+func (m *Work) TableName() string {
+	return "works" // the name of your collection
+}
 
 func main() {
 	app := pocketbase.New()
@@ -87,26 +132,28 @@ func main() {
 				pid = u.String()
 				contentType = strings.Join(path[len(path)-2:], "/")
 			}
-			record, err := app.Dao().FindFirstRecordByData("works", "pid", pid)
+
+			work, err := FindWorkByPid(app.Dao(), pid)
 			if err != nil {
 				return err
-			} else if record == nil {
+			} else if work == nil {
 				return c.NoContent(404)
 			}
 
 			if contentType == "text/html" {
 				// redirect to resource
-				return c.Redirect(http.StatusFound, record.GetString("url"))
+				return c.Redirect(http.StatusFound, work.Url)
 			}
 
-			// extract references and look up their metadata
+			// extract pids of references and look up their metadata
 			var r []Reference
-			err = record.UnmarshalJSONField("references", &r)
+			err = json.Unmarshal(work.References, &r)
 			if err != nil {
 				return err
 			}
 			if len(r) > 0 {
-				refs := make([]interface{}, len(r))
+				// generate a list of pid strings
+				refs := make([]string, len(r))
 				for i, v := range r {
 					if v.Doi != "" {
 						refs[i] = v.Doi
@@ -114,18 +161,25 @@ func main() {
 						refs[i] = v.Url
 					}
 				}
-				references, err := app.Dao().FindRecordsByExpr("works",
-					dbx.In("pid", refs...))
+				references, err := FindWorksByPids(app.Dao(), refs...)
 				if err != nil {
 					return err
 				}
 				if len(references) > 0 {
-					record.Set("references", references)
+					work.References, err = json.Marshal(references)
+					if err != nil {
+						return err
+					}
+					// dont save the updated references yet
+					// if err := app.Dao().Save(work); err != nil {
+					// 	return err
+					// }
 				}
 			}
+
 			// extract files and look up their metadata
 			var f []File
-			err = record.UnmarshalJSONField("files", &f)
+			err = json.Unmarshal(work.Files, &f)
 			if err != nil {
 				return err
 			}
@@ -143,7 +197,7 @@ func main() {
 			switch contentType {
 			case "application/vnd.commonmeta+json", "application/json":
 				// return metadata in Commonmeta format
-				return c.JSON(http.StatusOK, record)
+				return c.JSON(http.StatusOK, work)
 			case "text/markdown":
 				// redirect to markdown version of the resource if available
 				if markdownUrl == "" {
@@ -174,4 +228,48 @@ func main() {
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func WorkQuery(dao *daos.Dao) *dbx.SelectQuery {
+	return dao.ModelQuery(&Work{})
+}
+
+// find single work by pid
+func FindWorkByPid(dao *daos.Dao, pid string) (*Work, error) {
+	work := &Work{}
+
+	err := WorkQuery(dao).
+		// case insensitive match
+		AndWhere(dbx.NewExp("LOWER(pid)={:pid}", dbx.Params{
+			"pid": strings.ToLower(pid),
+		})).
+		Limit(1).
+		One(work)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return work, nil
+}
+
+// find multiple works by their pids. Use variadic arguments to pass in the pids
+func FindWorksByPids(dao *daos.Dao, pids ...string) ([]*Work, error) {
+	works := []*Work{}
+
+	// convert pids to a slice of interface{} to use with dbx.In
+	refs := make([]interface{}, len(pids))
+	for i, v := range pids {
+		refs[i] = v
+	}
+
+	err := WorkQuery(dao).
+		AndWhere(dbx.In("pid", refs...)).
+		All(&works)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return works, nil
 }
