@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -31,30 +32,30 @@ type Work struct {
 	Type string `db:"type" json:"type"`
 
 	// optional fields
-	AdditionalType       string        `db:"additional_type" json:"additional_type,omitempty"`
-	Url                  string        `db:"url" json:"url,omitempty"`
-	Contributors         types.JsonRaw `db:"contributors" json:"contributors,omitempty"`
-	Publisher            types.JsonRaw `db:"publisher" json:"publisher,omitempty"`
-	Date                 types.JsonRaw `db:"date" json:"date,omitempty"`
-	Titles               types.JsonRaw `db:"titles" json:"titles,omitempty"`
-	Container            types.JsonRaw `db:"container" json:"container,omitempty"`
-	Subjects             types.JsonRaw `db:"subjects" json:"subjects,omitempty"`
-	Sizes                types.JsonRaw `db:"sizes" json:"sizes,omitempty"`
-	Formats              types.JsonRaw `db:"formats" json:"formats,omitempty"`
-	Language             string        `db:"language" json:"language,omitempty"`
-	License              types.JsonRaw `db:"license" json:"license,omitempty"`
-	Version              string        `db:"version" json:"version,omitempty"`
-	References           types.JsonRaw `db:"references" json:"references,omitempty"`
-	Relations            types.JsonRaw `db:"relations" json:"relations,omitempty"`
-	FundingReferences    types.JsonRaw `db:"funding_references" json:"funding_references,omitempty"`
-	Descriptions         types.JsonRaw `db:"descriptions" json:"descriptions,omitempty"`
-	GeoLocations         types.JsonRaw `db:"geo_locations" json:"geo_locations,omitempty"`
-	Provider             string        `db:"provider" json:"provider,omitempty"`
-	AlternateIdentifiers types.JsonRaw `db:"alternate_identifiers" json:"alternate_identifiers,omitempty"`
-	Files                types.JsonRaw `db:"files" json:"files,omitempty"`
-	ArchiveLocations     types.JsonRaw `db:"archive_locations" json:"archive_locations,omitempty"`
-	Created              string        `db:"created" json:"created"`
-	Updated              string        `db:"updated" json:"updated"`
+	AdditionalType       string         `db:"additional_type" json:"additional_type,omitempty"`
+	Url                  string         `db:"url" json:"url,omitempty"`
+	Contributors         types.JsonRaw  `db:"contributors" json:"contributors,omitempty"`
+	Publisher            types.JsonRaw  `db:"publisher" json:"publisher,omitempty"`
+	Date                 types.JsonRaw  `db:"date" json:"date,omitempty"`
+	Titles               types.JsonRaw  `db:"titles" json:"titles,omitempty"`
+	Container            types.JsonRaw  `db:"container" json:"container,omitempty"`
+	Subjects             types.JsonRaw  `db:"subjects" json:"subjects,omitempty"`
+	Sizes                types.JsonRaw  `db:"sizes" json:"sizes,omitempty"`
+	Formats              types.JsonRaw  `db:"formats" json:"formats,omitempty"`
+	Language             string         `db:"language" json:"language,omitempty"`
+	License              types.JsonRaw  `db:"license" json:"license,omitempty"`
+	Version              string         `db:"version" json:"version,omitempty"`
+	References           types.JsonRaw  `db:"references" json:"references,omitempty"`
+	Relations            types.JsonRaw  `db:"relations" json:"relations,omitempty"`
+	FundingReferences    types.JsonRaw  `db:"funding_references" json:"funding_references,omitempty"`
+	Descriptions         types.JsonRaw  `db:"descriptions" json:"descriptions,omitempty"`
+	GeoLocations         types.JsonRaw  `db:"geo_locations" json:"geo_locations,omitempty"`
+	Provider             string         `db:"provider" json:"provider,omitempty"`
+	AlternateIdentifiers types.JsonRaw  `db:"alternate_identifiers" json:"alternate_identifiers,omitempty"`
+	Files                types.JsonRaw  `db:"files" json:"files,omitempty"`
+	ArchiveLocations     types.JsonRaw  `db:"archive_locations" json:"archive_locations,omitempty"`
+	Created              types.DateTime `db:"created" json:"created"`
+	Updated              types.DateTime `db:"updated" json:"updated"`
 }
 
 func (m *Work) TableName() string {
@@ -94,6 +95,9 @@ func main() {
 		e.Router.GET("/schema.html", func(c echo.Context) error {
 			return c.Redirect(http.StatusMovedPermanently, "https://docs.commonmeta.org/schema.html")
 		})
+		e.Router.GET("/robots.txt", func(c echo.Context) error {
+			return c.Redirect(http.StatusMovedPermanently, "https://docs.commonmeta.org/robots.txt")
+		})
 		return nil
 	})
 
@@ -127,17 +131,17 @@ func main() {
 			if len(path) > 3 && path[len(path)-3] == "transform" {
 				u.Path = strings.Join(path[:len(path)-3], "/")
 				pid = u.String()
-				str = strings.Join(path[1:len(path)-3], "/")
+				str = u.Path[1:]
 				contentType = strings.Join(path[len(path)-2:], "/")
 			}
 
 			// alternatively extract the content type from the Accept header
 			if contentType == "" {
 				acceptHeaders := c.Request().Header.Get("Accept")
-				contentType := strings.Split(acceptHeaders, ",")[0]
-				if contentType == "" || contentType == "*/*" {
-					contentType = "text/html"
-				}
+				contentType = strings.Split(acceptHeaders, ",")[0]
+			}
+			if contentType == "" || contentType == "*/*" {
+				contentType = "text/html"
 			}
 
 			work, err := FindWorkByPid(app.Dao(), pid)
@@ -147,16 +151,19 @@ func main() {
 
 			// supported content types
 			contentTypes := []string{"text/html", "application/vnd.commonmeta+json", "application/json", "text/markdown", "application/vnd.jats+xml", "application/xml", "application/pdf"}
-
 			if work == nil || !slices.Contains(contentTypes, contentType) {
-				// redirect pid if not found in the database
 				if contentType == "text/html" {
-					log.Printf("%s not found, redirecting...", pid)
-					return c.Redirect(http.StatusFound, pid)
+					// look up minimal metadata and store in works collection
+					log.Printf("%s not found, finding elsewhere ...", pid)
+					work, err = CreateWorkByPid(app.Dao(), pid)
+					if err != nil {
+						return err
+					}
+					return c.Redirect(http.StatusFound, work.Url)
 				} else if contentType == "application/vnd.commonmeta+json" || contentType == "application/json" {
-					// cant redirect with commonmeta content type
-					log.Printf("%s not found", pid)
-					return c.JSON(http.StatusNotFound, map[string]string{"error": "Work not found"})
+					// cant (yet) handle commonmeta content type, and not supported by Crossref or DataCite content negotiation
+					log.Printf("%s not converted to commonmeta", pid)
+					return c.JSON(http.StatusNotFound, map[string]string{"error": "Work not yet converted to Commonmeta format"})
 				}
 				// content negotiation is not supported for redirects
 				// look up the DOI registration agency in works table and use link-based content negotiation
@@ -229,6 +236,11 @@ func main() {
 				jatsUrl = files["application/vnd.jats+xml"]
 			}
 
+			// return error if work not yet converted to Commonmeta format
+			if work.Type == "" {
+				return c.JSON(http.StatusNotAcceptable, map[string]string{"error": "Work not yet converted to Commonmeta format"})
+			}
+
 			switch contentType {
 			case "application/vnd.commonmeta+json", "application/json":
 				// return metadata in Commonmeta format
@@ -290,6 +302,68 @@ func FindWorkByPid(dao *daos.Dao, pid string) (*Work, error) {
 	return work, nil
 }
 
+// create work by pid, currently only supports DOIs
+func CreateWorkByPid(dao *daos.Dao, pid string) (*Work, error) {
+	u, err := url.Parse(pid)
+	if err != nil {
+		return nil, err
+	}
+	isDoi := u.Host == "doi.org"
+	if !isDoi {
+		return nil, fmt.Errorf("Only DOIs are supported")
+	}
+
+	// disable http redirects
+	client := http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	resp, err := client.Head(pid)
+	if err != nil {
+		return nil, err
+	}
+	url := resp.Header.Get("Location")
+	provider, err := FindDoiRegistrationAgency(dao, pid)
+	if err != nil {
+		return nil, err
+	}
+	// create minimal record in the works collection
+	work := &Work{
+		Pid:                  pid,
+		Type:                 "",
+		AdditionalType:       "",
+		Url:                  url,
+		Contributors:         types.JsonRaw("[]"),
+		Publisher:            types.JsonRaw("{}"),
+		Date:                 types.JsonRaw("{}"),
+		Titles:               types.JsonRaw("[]"),
+		Container:            types.JsonRaw("{}"),
+		Subjects:             types.JsonRaw("[]"),
+		Sizes:                types.JsonRaw("[]"),
+		Formats:              types.JsonRaw("[]"),
+		Language:             "",
+		License:              types.JsonRaw("{}"),
+		Version:              "",
+		References:           types.JsonRaw("[]"),
+		Relations:            types.JsonRaw("[]"),
+		FundingReferences:    types.JsonRaw("[]"),
+		Descriptions:         types.JsonRaw("[]"),
+		GeoLocations:         types.JsonRaw("[]"),
+		Provider:             provider,
+		AlternateIdentifiers: types.JsonRaw("[]"),
+		Files:                types.JsonRaw("[]"),
+		ArchiveLocations:     types.JsonRaw("[]"),
+		Created:              types.NowDateTime(),
+		Updated:              types.NowDateTime(),
+	}
+
+	if err := dao.Save(work); err != nil {
+		return nil, err
+	}
+	return work, nil
+}
+
 // find multiple works by their pids. Use variadic arguments to pass in the pids
 func FindWorksByPids(dao *daos.Dao, pids ...string) ([]*Work, error) {
 	works := []*Work{}
@@ -324,10 +398,42 @@ func FindDoiRegistrationAgency(dao *daos.Dao, doi string) (string, error) {
 		One(work)
 
 	if err == sql.ErrNoRows {
-		return "", nil
+		ra, err := FindDoiRegistrationAgencyFromHandle(dao, substr)
+		if err != nil {
+			return "", err
+		}
+		return ra, nil
 	} else if err != nil {
 		return "", err
 	}
 
 	return work.Provider, nil
+}
+
+// find DOI registration agency for prefix from handle service
+func FindDoiRegistrationAgencyFromHandle(dao *daos.Dao, doi string) (string, error) {
+	type Response []struct {
+		DOI string `json:"DOI"`
+		RA  string `json:"RA"`
+	}
+	u, err := url.Parse(doi)
+	if err != nil {
+		return "", err
+	}
+	substr := u.Path[1:]
+	resp, err := http.Get(fmt.Sprintf("https://doi.org/ra/%s", substr))
+	if err != nil {
+		return "", err
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	var result Response
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return "", err
+	}
+	return result[0].RA, nil
 }
