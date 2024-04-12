@@ -28,34 +28,34 @@ type Work struct {
 	models.BaseModel
 
 	// required fields
-	Pid  string `db:"pid" json:"id"`
-	Type string `db:"type" json:"type"`
+	Pid     string         `db:"pid" json:"id"`
+	Type    string         `db:"type" json:"type"`
+	Created types.DateTime `db:"created" json:"created"`
+	Updated types.DateTime `db:"updated" json:"updated"`
 
 	// optional fields
-	AdditionalType       string         `db:"additional_type" json:"additional_type,omitempty"`
-	Url                  string         `db:"url" json:"url,omitempty"`
-	Contributors         types.JsonRaw  `db:"contributors" json:"contributors,omitempty"`
-	Publisher            types.JsonRaw  `db:"publisher" json:"publisher,omitempty"`
-	Date                 types.JsonRaw  `db:"date" json:"date,omitempty"`
-	Titles               types.JsonRaw  `db:"titles" json:"titles,omitempty"`
-	Container            types.JsonRaw  `db:"container" json:"container,omitempty"`
-	Subjects             types.JsonRaw  `db:"subjects" json:"subjects,omitempty"`
-	Sizes                types.JsonRaw  `db:"sizes" json:"sizes,omitempty"`
-	Formats              types.JsonRaw  `db:"formats" json:"formats,omitempty"`
-	Language             string         `db:"language" json:"language,omitempty"`
-	License              types.JsonRaw  `db:"license" json:"license,omitempty"`
-	Version              string         `db:"version" json:"version,omitempty"`
-	References           types.JsonRaw  `db:"references" json:"references,omitempty"`
-	Relations            types.JsonRaw  `db:"relations" json:"relations,omitempty"`
-	FundingReferences    types.JsonRaw  `db:"funding_references" json:"funding_references,omitempty"`
-	Descriptions         types.JsonRaw  `db:"descriptions" json:"descriptions,omitempty"`
-	GeoLocations         types.JsonRaw  `db:"geo_locations" json:"geo_locations,omitempty"`
-	Provider             string         `db:"provider" json:"provider,omitempty"`
-	AlternateIdentifiers types.JsonRaw  `db:"alternate_identifiers" json:"alternate_identifiers,omitempty"`
-	Files                types.JsonRaw  `db:"files" json:"files,omitempty"`
-	ArchiveLocations     types.JsonRaw  `db:"archive_locations" json:"archive_locations,omitempty"`
-	Created              types.DateTime `db:"created" json:"created"`
-	Updated              types.DateTime `db:"updated" json:"updated"`
+	AdditionalType       string        `db:"additional_type" json:"additional_type,omitempty"`
+	Url                  string        `db:"url" json:"url,omitempty"`
+	Contributors         types.JsonRaw `db:"contributors" json:"contributors,omitempty"`
+	Publisher            types.JsonRaw `db:"publisher" json:"publisher,omitempty"`
+	Date                 types.JsonRaw `db:"date" json:"date,omitempty"`
+	Titles               types.JsonRaw `db:"titles" json:"titles,omitempty"`
+	Container            types.JsonRaw `db:"container" json:"container,omitempty"`
+	Subjects             types.JsonRaw `db:"subjects" json:"subjects,omitempty"`
+	Sizes                types.JsonRaw `db:"sizes" json:"sizes,omitempty"`
+	Formats              types.JsonRaw `db:"formats" json:"formats,omitempty"`
+	Language             string        `db:"language" json:"language,omitempty"`
+	License              types.JsonRaw `db:"license" json:"license,omitempty"`
+	Version              string        `db:"version" json:"version,omitempty"`
+	References           types.JsonRaw `db:"references" json:"references,omitempty"`
+	Relations            types.JsonRaw `db:"relations" json:"relations,omitempty"`
+	FundingReferences    types.JsonRaw `db:"funding_references" json:"funding_references,omitempty"`
+	Descriptions         types.JsonRaw `db:"descriptions" json:"descriptions,omitempty"`
+	GeoLocations         types.JsonRaw `db:"geo_locations" json:"geo_locations,omitempty"`
+	Provider             string        `db:"provider" json:"provider,omitempty"`
+	AlternateIdentifiers types.JsonRaw `db:"alternate_identifiers" json:"alternate_identifiers,omitempty"`
+	Files                types.JsonRaw `db:"files" json:"files,omitempty"`
+	ArchiveLocations     types.JsonRaw `db:"archive_locations" json:"archive_locations,omitempty"`
 }
 
 func (m *Work) TableName() string {
@@ -121,11 +121,17 @@ func main() {
 				pid = fmt.Sprintf("https://%s", str)
 			}
 
-			// extract optional content type from the URL path
+			// check if the pid is a valid URL
 			u, err := url.Parse(pid)
 			if err != nil {
 				return err
 			}
+			if u.Scheme == "" || u.Host == "" {
+				log.Printf("Invalid pid %s", pid)
+				return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request"})
+			}
+
+			// extract optional content type from the URL path
 			contentType := ""
 			path := strings.Split(u.Path, "/")
 			if len(path) > 3 && path[len(path)-3] == "transform" {
@@ -153,13 +159,15 @@ func main() {
 			contentTypes := []string{"text/html", "application/vnd.commonmeta+json", "application/json", "text/markdown", "application/vnd.jats+xml", "application/xml", "application/pdf"}
 			if work == nil || !slices.Contains(contentTypes, contentType) {
 				if contentType == "text/html" {
+					// only allow record creation for admins
 					// look up minimal metadata and store in works collection
-					log.Printf("%s not found, finding elsewhere ...", pid)
-					work, err = CreateWorkByPid(app.Dao(), pid)
-					if err != nil {
-						return c.JSON(http.StatusNotFound, map[string]string{"error": "Not found"})
-					}
-					return c.Redirect(http.StatusFound, work.Url)
+					// log.Printf("%s not found, finding elsewhere ...", pid)
+					// work, err = CreateWorkByPid(app.Dao(), pid)
+					// if err != nil {
+					// 	return c.JSON(http.StatusNotFound, map[string]string{"error": "Not found"})
+					// }
+					log.Printf("%s not found, redirecting ...", pid)
+					return c.Redirect(http.StatusFound, pid)
 				} else if contentType == "application/vnd.commonmeta+json" || contentType == "application/json" {
 					// cant (yet) handle commonmeta content type, and not supported by Crossref or DataCite content negotiation
 					log.Printf("%s not converted to commonmeta", pid)
