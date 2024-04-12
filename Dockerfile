@@ -4,7 +4,7 @@ FROM --platform=$BUILDPLATFORM debian:bookworm as builder
 
 ENV PATH="$PATH:/usr/local/go/bin"
 
-RUN apt-get update && apt-get install -y wget && \
+RUN apt-get update && apt-get install -y wget ca-certificates && \
     wget -cq https://go.dev/dl/go1.22.2.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf go1.22.2.linux-amd64.tar.gz
 

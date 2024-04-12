@@ -157,7 +157,7 @@ func main() {
 					log.Printf("%s not found, finding elsewhere ...", pid)
 					work, err = CreateWorkByPid(app.Dao(), pid)
 					if err != nil {
-						return err
+						return c.JSON(http.StatusNotFound, map[string]string{"error": "Not found"})
 					}
 					return c.Redirect(http.StatusFound, work.Url)
 				} else if contentType == "application/vnd.commonmeta+json" || contentType == "application/json" {
