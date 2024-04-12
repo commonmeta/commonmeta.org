@@ -122,13 +122,9 @@ func main() {
 			}
 
 			// check if the pid is a valid URL
-			u, err := url.Parse(pid)
+			u, err := url.ParseRequestURI(pid)
 			if err != nil {
 				return err
-			}
-			if u.Scheme == "" || u.Host == "" {
-				log.Printf("Invalid pid %s", pid)
-				return c.JSON(http.StatusBadRequest, map[string]string{"error": "Bad request"})
 			}
 
 			// extract optional content type from the URL path
@@ -166,8 +162,12 @@ func main() {
 					// if err != nil {
 					// 	return c.JSON(http.StatusNotFound, map[string]string{"error": "Not found"})
 					// }
-					log.Printf("%s not found, redirecting ...", pid)
-					return c.Redirect(http.StatusFound, pid)
+					if isDoi {
+						log.Printf("%s not found, redirecting ...", pid)
+						return c.Redirect(http.StatusFound, pid)
+					}
+					// don't redirect non-DOI URLs
+					return c.JSON(http.StatusNotFound, map[string]string{"error": "Not found"})
 				} else if contentType == "application/vnd.commonmeta+json" || contentType == "application/json" {
 					// cant (yet) handle commonmeta content type, and not supported by Crossref or DataCite content negotiation
 					log.Printf("%s not converted to commonmeta", pid)
