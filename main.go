@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"reflect"
 	"regexp"
 	"slices"
 	"strings"
@@ -36,9 +37,14 @@ type Content struct {
 	ContainerTitle []string   `json:"container-title"`
 	DOI            string     `json:"doi"`
 	Files          []struct{} `json:"files"`
-	GUID           string     `json:"guid"`
-	Issue          string     `json:"issue"`
-	Issued         struct {
+	Funder         []struct {
+		DOI   string   `json:"DOI"`
+		Name  string   `json:"name"`
+		Award []string `json:"award"`
+	} `json:"funder"`
+	GUID   string `json:"guid"`
+	Issue  string `json:"issue"`
+	Issued struct {
 		DateAsParts []DateParts `json:"date-parts"`
 		DateTime    string      `json:"date-time"`
 	} `json:"issued"`
@@ -46,9 +52,17 @@ type Content struct {
 		DateAsParts []DateParts `json:"date-parts"`
 		DateTime    string      `json:"date-time"`
 	} `json:"created"`
-	Language string    `json:"language"`
-	License  []License `json:"license"`
-	Link     []struct {
+	ISSN     []string `json:"ISSN"`
+	ISBNType []struct {
+		Value string `json:"value"`
+		Type  string `json:"type"`
+	} `json:"isbn-type"`
+	Language string `json:"language"`
+	License  []struct {
+		Url            string `json:"URL"`
+		ContentVersion string `json:"content-version"`
+	} `json:"license"`
+	Link []struct {
 		ContentType string `json:"content-type"`
 		Url         string `json:"url"`
 	} `json:"link"`
@@ -60,9 +74,28 @@ type Content struct {
 		DOI          string `json:"DOI"`
 		ArticleTitle string `json:"article-title"`
 		Year         string `json:"year"`
+		Unstructured string `json:"unstructured"`
 	} `json:"reference"`
-	Relations string `json:"relations"`
-	Resource  struct {
+	Relation struct {
+		IsNewVersionOf      []CrossrefRelation `json:"is-new-version-of"`
+		IsPreviousVersionOf []CrossrefRelation `json:"is-previous-version-of"`
+		IsVersionOf         []CrossrefRelation `json:"is-version-of"`
+		HasVersion          []CrossrefRelation `json:"has-version"`
+		IsPartOf            []CrossrefRelation `json:"is-part-of"`
+		HasPart             []CrossrefRelation `json:"has-part"`
+		IsVariantFormOf     []CrossrefRelation `json:"is-variant-form-of"`
+		IsOriginalFormOf    []CrossrefRelation `json:"is-original-form-of"`
+		IsIdenticalTo       []CrossrefRelation `json:"is-identical-to"`
+		IsTranslationOf     []CrossrefRelation `json:"is-translation-of"`
+		IsReviewedBy        []CrossrefRelation `json:"is-reviewed-by"`
+		Reviews             []CrossrefRelation `json:"reviews"`
+		HasReview           []CrossrefRelation `json:"has-review"`
+		IsPreprintOf        []CrossrefRelation `json:"is-preprint-of"`
+		HasPreprint         []CrossrefRelation `json:"has-preprint"`
+		IsSupplementTo      []CrossrefRelation `json:"is-supplement-to"`
+		IsSupplementedBy    []CrossrefRelation `json:"is-supplemented-by"`
+	}
+	Resource struct {
 		Primary struct {
 			ContentType string `json:"content_type"`
 			URL         string `json:"url"`
@@ -122,16 +155,16 @@ type Container struct {
 }
 
 type Contributor struct {
-	ID               string   `json:"id,omitempty"`
-	Type             string   `json:"type"`
-	ContributorRoles []string `json:"contributorRoles"`
-	Name             string   `json:"name,omitempty"`
-	GivenName        string   `json:"givenName,omitempty"`
-	FamilyName       string   `json:"familyName,omitempty"`
-	Affiliations     []struct {
+	ID           string `json:"id,omitempty"`
+	Type         string `json:"type"`
+	Name         string `json:"name,omitempty"`
+	GivenName    string `json:"givenName,omitempty"`
+	FamilyName   string `json:"familyName,omitempty"`
+	Affiliations []struct {
 		ID   string `json:"id,omitempty"`
 		Name string `json:"name,omitempty"`
 	} `json:"affiliations,omitempty"`
+	ContributorRoles []string `json:"contributorRoles"`
 }
 
 type Creator struct {
@@ -139,6 +172,11 @@ type Creator struct {
 	Identifier     string `json:"identifier"`
 	IdentifierType string `json:"identifierType"`
 	Name           string `json:"name"`
+}
+
+type CrossrefRelation struct {
+	ID     string `json:"id"`
+	IDType string `json:"id-type"`
 }
 
 type File struct {
@@ -150,9 +188,17 @@ type File struct {
 	MimeType string `json:"mimeType,omitempty"`
 }
 
+type FundingReference struct {
+	FunderIdentifier     string `json:"funderIdentifier,omitempty"`
+	FunderIdentifierType string `json:"funderIdentifierType,omitempty"`
+	FunderName           string `json:"funderName"`
+	AwardNumber          string `json:"awardNumber,omitempty"`
+	AwardURI             string `json:"award_uri,omitempty"`
+}
+
 type License struct {
-	ContentVersion string `json:"contentVersion"`
-	URL            string `json:"url"`
+	ID  string `json:"id,omitempty"`
+	Url string `json:"url,omitempty"`
 }
 
 type Publisher struct {
@@ -166,6 +212,15 @@ type Reference struct {
 	Title           string `json:"title,omitempty"`
 	PublicationYear string `json:"publicationYear,omitempty"`
 	Unstructured    string `json:"unstructured,omitempty"`
+}
+
+type Relation struct {
+	ID   string `json:"id"`
+	Type string `json:"type"`
+}
+
+type Subject struct {
+	Subject string `json:"subject"`
 }
 
 type Title struct {
@@ -219,17 +274,27 @@ func (m *Work) TableName() string {
 func main() {
 	app := pocketbase.New()
 
+	type File struct {
+		Url      string `json:"url"`
+		MimeType string `json:"mimeType"`
+	}
+
 	type Reference struct {
 		Doi             string `json:"doi,omitempty"`
 		Url             string `json:"url,omitempty"`
 		Key             string `json:"key"`
 		PublicationYear string `json:"publicationYear,omitempty"`
 		Title           string `json:"title,omitempty"`
+		Unstructured    string `json:"unstructured,omitempty"`
 	}
 
-	type File struct {
-		Url      string `json:"url"`
-		MimeType string `json:"mimeType"`
+	type Relation struct {
+		ID   string `json:"id"`
+		Type string `json:"type"`
+	}
+
+	type Subject struct {
+		Subject string `json:"subject"`
 	}
 
 	// redirect hard-coded legacy urls to docs site
@@ -680,25 +745,53 @@ func ReadCrossref(content Content) (*Work, error) {
 		"standard":            "Standard",
 	}
 
-	pid := "https://doi.org/" + content.DOI
+	CrossrefContainerTypes := map[string]string{
+		"book-chapter":        "book",
+		"dataset":             "database",
+		"journal-article":     "journal",
+		"journal-issue":       "journal",
+		"monograph":           "book-series",
+		"proceedings-article": "proceedings",
+		"posted-content":      "periodical",
+	}
+
+	CRToCMContainerTranslations := map[string]string{
+		"book":        "Book",
+		"book-series": "BookSeries",
+		"database":    "DataRepository",
+		"journal":     "Journal",
+		"proceedings": "Proceedings",
+		"periodical":  "Periodical",
+	}
+
+	pid := DOIAsUrl(content.DOI)
 	url := content.Resource.Primary.URL
 	provider := "Crossref"
 	Type := CRToCMMappings[content.Type]
 
 	var contributors = func() types.JsonRaw {
-		contributors := make([]Contributor, len(content.Author))
-		for i, v := range content.Author {
-			contributors[i] = Contributor{
-				ID:               v.ORCID,
-				Type:             "Person",
-				ContributorRoles: []string{"Author"},
-				GivenName:        v.Given,
-				FamilyName:       v.Family,
-				Name:             v.Name,
-				// Affiliations: []struct {
-				// 	ID   string `json:"id,omitempty"`
-				// 	Name string `json:"name,omitempty"`
-				// }{{ID: v.Affiliation[0].ROR, Name: v.Affiliation[0].Name}},
+		contributors := make([]Contributor, 0)
+		for _, v := range content.Author {
+			if v.Name != "" || v.Given != "" || v.Family != "" {
+				affiliations := make([]struct {
+					ID   string `json:"id,omitempty"`
+					Name string `json:"name,omitempty"`
+				}, len(v.Affiliation))
+				for i, a := range v.Affiliation {
+					affiliations[i] = struct {
+						ID   string `json:"id,omitempty"`
+						Name string `json:"name,omitempty"`
+					}{ID: a.ROR, Name: a.Name}
+				}
+				contributors = append(contributors, Contributor{
+					ID:               v.ORCID,
+					Type:             "Person",
+					GivenName:        v.Given,
+					FamilyName:       v.Family,
+					Name:             v.Name,
+					Affiliations:     affiliations,
+					ContributorRoles: []string{"Author"},
+				})
 			}
 		}
 		b, err := json.Marshal(contributors)
@@ -713,12 +806,12 @@ func ReadCrossref(content Content) (*Work, error) {
 	var date = func() types.JsonRaw {
 		if content.Issued.DateTime != "" {
 			return types.JsonRaw(fmt.Sprintf(`{"published": "%s"}`, content.Issued.DateTime))
-		} else if content.Issued.DateAsParts != nil {
+		} else if len(content.Issued.DateAsParts) > 1 {
 			published := GetDateFromDateParts(content.Issued.DateAsParts)
 			return types.JsonRaw(fmt.Sprintf(`{"published": "%s"}`, published))
 		} else if content.Created.DateTime != "" {
 			return types.JsonRaw(fmt.Sprintf(`{"created": "%s"}`, content.Created.DateTime))
-		} else if content.Created.DateAsParts != nil {
+		} else if len(content.Created.DateAsParts) > 1 {
 			created := GetDateFromDateParts(content.Created.DateAsParts)
 			return types.JsonRaw(fmt.Sprintf(`{"created": "%s"}`, created))
 		} else {
@@ -726,7 +819,10 @@ func ReadCrossref(content Content) (*Work, error) {
 		}
 	}
 	var titles = func() types.JsonRaw {
-		return types.JsonRaw(fmt.Sprintf(`[{"title": "%s"}]`, content.Title[0]))
+		if len(content.Title) > 0 {
+			return types.JsonRaw(fmt.Sprintf(`[{"title": "%s"}]`, content.Title[0]))
+		}
+		return types.JsonRaw("[]")
 	}
 	var descriptions = func() types.JsonRaw {
 		if content.Abstract != "" {
@@ -735,11 +831,56 @@ func ReadCrossref(content Content) (*Work, error) {
 		return types.JsonRaw("[]")
 	}
 	var container = func() types.JsonRaw {
-		return types.JsonRaw(fmt.Sprintf(`{"title": "%s"}`, content.ContainerTitle))
+		containerType := CrossrefContainerTypes[content.Type]
+		containerType = CRToCMContainerTranslations[containerType]
+		var identifier, identifierType string
+		if content.ISSN != nil {
+			identifier = IssnAsUrl(content.ISSN[0])
+			identifierType = "ISSN"
+		}
+		if len(content.ISBNType) > 0 {
+			identifier = content.ISBNType[0].Value
+			identifierType = "ISBN"
+		}
+		var containerTitle string
+		if len(content.ContainerTitle) > 0 {
+			containerTitle = content.ContainerTitle[0]
+		}
+		var lastPage string
+		pages := strings.Split(content.Page, "-")
+		firstPage := pages[0]
+		if len(pages) > 1 {
+			lastPage = pages[1]
+		}
+		container := Container{
+			Identifier:     identifier,
+			IdentifierType: identifierType,
+			Type:           containerType,
+			Title:          containerTitle,
+			Volume:         content.Volume,
+			Issue:          content.Issue,
+			FirstPage:      firstPage,
+			LastPage:       lastPage,
+		}
+		b, err := json.Marshal(container)
+		if err != nil {
+			return types.JsonRaw("{}")
+		}
+		return types.JsonRaw(b)
 	}
 	var subjects = func() types.JsonRaw {
 		if len(content.Subject) > 0 {
-			return types.JsonRaw(fmt.Sprintf(`[{"subject": "%v"}]`, content.Subject))
+			subjects := make([]Subject, len(content.Subject))
+			for i, v := range content.Subject {
+				subjects[i] = Subject{
+					Subject: v,
+				}
+			}
+			b, err := json.Marshal(subjects)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
 		}
 		return types.JsonRaw("[]")
 	}
@@ -749,9 +890,10 @@ func ReadCrossref(content Content) (*Work, error) {
 			for i, v := range content.Reference {
 				references[i] = Reference{
 					Key:             v.Key,
-					Doi:             v.DOI,
+					Doi:             DOIAsUrl(v.DOI),
 					Title:           v.ArticleTitle,
 					PublicationYear: v.Year,
+					Unstructured:    v.Unstructured,
 				}
 			}
 			b, err := json.Marshal(references)
@@ -763,26 +905,93 @@ func ReadCrossref(content Content) (*Work, error) {
 		return types.JsonRaw("[]")
 	}
 	var relations = func() types.JsonRaw {
-		return types.JsonRaw("[]")
+		relations := make([]Relation, 0)
+		fields := reflect.VisibleFields(reflect.TypeOf(content.Relation))
+		for _, field := range fields {
+			// relation types to include
+			relationTypes := []string{"IsPartOf", "HasPart", "IsVariantFormOf", "IsOriginalFormOf", "IsIdenticalTo", "IsTranslationOf", "IsReviewedBy", "Reviews", "HasReview", "IsPreprintOf", "HasPreprint", "IsSupplementTo", "IsSupplementedBy"}
+			if slices.Contains(relationTypes, field.Name) {
+				relationByType := reflect.ValueOf(content.Relation).FieldByName(field.Name)
+				for _, v := range relationByType.Interface().([]CrossrefRelation) {
+					relations = append(relations, Relation{
+						ID:   DOIAsUrl(v.ID),
+						Type: field.Name,
+					})
+				}
+			}
+		}
+		b, err := json.Marshal(relations)
+		if err != nil {
+			return types.JsonRaw("[]")
+		}
+		return types.JsonRaw(b)
 	}
 	var fundingReferences = func() types.JsonRaw {
+		if content.Funder != nil {
+			fundingReferences := make([]FundingReference, 0)
+			for _, v := range content.Funder {
+				funderIdentifier := DOIAsUrl(v.DOI)
+				var funderIdentifierType string
+				if strings.HasPrefix(v.DOI, "10.13039") {
+					funderIdentifierType = "Crossref Funder ID"
+				}
+				if len(v.Award) > 0 {
+					for _, award := range v.Award {
+						fundingReferences = append(fundingReferences, FundingReference{
+							FunderIdentifier:     funderIdentifier,
+							FunderIdentifierType: funderIdentifierType,
+							FunderName:           v.Name,
+							AwardNumber:          award,
+						})
+					}
+				} else {
+					fundingReferences = append(fundingReferences, FundingReference{
+						FunderIdentifier:     funderIdentifier,
+						FunderIdentifierType: funderIdentifierType,
+						FunderName:           v.Name,
+					})
+				}
+			}
+			fundingReferences = RemoveDuplicates(fundingReferences)
+			b, err := json.Marshal(fundingReferences)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
+		}
 		return types.JsonRaw("[]")
 	}
 	var license = func() types.JsonRaw {
-		if content.License != nil {
-			return types.JsonRaw(fmt.Sprintf(`{"license": "%s"}`, content.License))
+		if content.License != nil && len(content.License) > 0 {
+			url, _ := NormalizeCCUrl(content.License[0].Url)
+			id := UrlToSPDX(url)
+			if id == "" {
+				log.Printf("License URL %s not found in SPDX", url)
+			}
+			license := License{
+				ID:  id,
+				Url: url,
+			}
+			b, err := json.Marshal(license)
+			if err != nil {
+				return types.JsonRaw("{}")
+			}
+			return types.JsonRaw(b)
 		}
 		return types.JsonRaw("{}")
 	}
 	var files = func() types.JsonRaw {
 		if len(content.Link) > 0 {
-			files := make([]File, len(content.Link))
-			for i, v := range content.Link {
-				files[i] = File{
-					Url:      v.Url,
-					MimeType: v.ContentType,
+			files := make([]File, 0)
+			for _, v := range content.Link {
+				if v.ContentType != "unspecified" {
+					files = append(files, File{
+						Url:      v.Url,
+						MimeType: v.ContentType,
+					})
 				}
 			}
+			files = RemoveDuplicates(files)
 			b, err := json.Marshal(files)
 			if err != nil {
 				return types.JsonRaw("[]")
@@ -793,7 +1002,13 @@ func ReadCrossref(content Content) (*Work, error) {
 	}
 	var archiveLocations = func() types.JsonRaw {
 		if len(content.Archive) > 0 {
-			return types.JsonRaw(fmt.Sprintf(`["%v"]`, content.Archive))
+			archiveLocations := make([]string, len(content.Archive))
+			copy(archiveLocations, content.Archive)
+			b, err := json.Marshal(archiveLocations)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
 		}
 		return types.JsonRaw("[]")
 	}
@@ -844,25 +1059,151 @@ func DOIFromUrl(str string) (string, error) {
 	return strings.TrimLeft(u.Path, "/"), nil
 }
 
-func GetDateFromDateParts(dateAsParts []DateParts) string {
-	if dateAsParts == nil {
+func DOIAsUrl(str string) string {
+	if str == "" {
 		return ""
 	}
-	dateParts := dateAsParts[0]
-	if dateParts[0] == 0 {
-		return ""
-	}
-	return GetDateFromParts(int(dateParts[0]), int(dateParts[1]), int(dateParts[2]))
+	return "https://doi.org/" + str
 }
 
-func GetDateFromParts(year, month, day int) string {
-	arr := []string{
-		fmt.Sprintf("%04d", year),
-		fmt.Sprintf("%02d", month),
-		fmt.Sprintf("%02d", day),
+func GetDateFromDateParts(dateAsParts []DateParts) string {
+	switch len(dateAsParts) {
+	case 0:
+		return ""
+	case 1:
+		year := dateAsParts[0][0]
+		if year == 0 {
+			return ""
+		}
+		return GetDateFromParts(year)
+	case 2:
+		year, month := dateAsParts[0][0], dateAsParts[0][1]
+		return GetDateFromParts(year, month)
+	case 3:
+		year, month, day := dateAsParts[0][0], dateAsParts[0][1], dateAsParts[0][2]
+		return GetDateFromParts(year, month, day)
 	}
-	// arr = slices.Filter(arr, func(i int, e string) bool {
-	// 	return e != "00" && e != "0000"
-	// }
+	return ""
+}
+
+func GetDateFromParts(parts ...int) string {
+	var arr []string
+	switch len(parts) {
+	case 0:
+		return ""
+	case 1:
+		year := fmt.Sprintf("%04d", parts[0])
+		arr = []string{year}
+	case 2:
+		year, month := fmt.Sprintf("%04d", parts[0]), fmt.Sprintf("%02d", parts[1])
+		arr = []string{year, month}
+	case 3:
+		year, month, day := fmt.Sprintf("%04d", parts[0]), fmt.Sprintf("%02d", parts[1]), fmt.Sprintf("%02d", parts[2])
+		arr = []string{year, month, day}
+	}
 	return strings.Join(arr, "-")
+}
+
+// ISSN as URL
+func IssnAsUrl(issn string) string {
+	if issn == "" {
+		return ""
+	}
+	return fmt.Sprintf("https://portal.issn.org/resource/ISSN/%s", issn)
+}
+
+// https://stackoverflow.com/questions/66643946/how-to-remove-duplicates-strings-or-int-from-slice-in-go/76948712#76948712
+func RemoveDuplicates[T comparable](s []T) []T {
+	alreadySeen := make(map[T]struct{}, len(s))
+	return slices.DeleteFunc(s, func(val T) bool {
+		_, duplicate := alreadySeen[val]
+		alreadySeen[val] = struct{}{}
+		return duplicate
+	})
+}
+
+func NormalizeCCUrl(url string) (string, error) {
+	NormalizedLicenses := map[string]string{
+		"https://creativecommons.org/licenses/by/1.0":          "https://creativecommons.org/licenses/by/1.0/legalcode",
+		"https://creativecommons.org/licenses/by/2.0":          "https://creativecommons.org/licenses/by/2.0/legalcode",
+		"https://creativecommons.org/licenses/by/2.5":          "https://creativecommons.org/licenses/by/2.5/legalcode",
+		"https://creativecommons.org/licenses/by/3.0":          "https://creativecommons.org/licenses/by/3.0/legalcode",
+		"https://creativecommons.org/licenses/by/3.0/us":       "https://creativecommons.org/licenses/by/3.0/legalcode",
+		"https://creativecommons.org/licenses/by/4.0":          "https://creativecommons.org/licenses/by/4.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc/1.0":       "https://creativecommons.org/licenses/by-nc/1.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc/2.0":       "https://creativecommons.org/licenses/by-nc/2.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc/2.5":       "https://creativecommons.org/licenses/by-nc/2.5/legalcode",
+		"https://creativecommons.org/licenses/by-nc/3.0":       "https://creativecommons.org/licenses/by-nc/3.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc/4.0":       "https://creativecommons.org/licenses/by-nc/4.0/legalcode",
+		"https://creativecommons.org/licenses/by-nd-nc/1.0":    "https://creativecommons.org/licenses/by-nd-nc/1.0/legalcode",
+		"https://creativecommons.org/licenses/by-nd-nc/2.0":    "https://creativecommons.org/licenses/by-nd-nc/2.0/legalcode",
+		"https://creativecommons.org/licenses/by-nd-nc/2.5":    "https://creativecommons.org/licenses/by-nd-nc/2.5/legalcode",
+		"https://creativecommons.org/licenses/by-nd-nc/3.0":    "https://creativecommons.org/licenses/by-nd-nc/3.0/legalcode",
+		"https://creativecommons.org/licenses/by-nd-nc/4.0":    "https://creativecommons.org/licenses/by-nd-nc/4.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc-sa/1.0":    "https://creativecommons.org/licenses/by-nc-sa/1.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc-sa/2.0":    "https://creativecommons.org/licenses/by-nc-sa/2.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc-sa/2.5":    "https://creativecommons.org/licenses/by-nc-sa/2.5/legalcode",
+		"https://creativecommons.org/licenses/by-nc-sa/3.0":    "https://creativecommons.org/licenses/by-nc-sa/3.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc-sa/3.0/us": "https://creativecommons.org/licenses/by-nc-sa/3.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc-sa/4.0":    "https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode",
+		"https://creativecommons.org/licenses/by-nd/1.0":       "https://creativecommons.org/licenses/by-nd/1.0/legalcode",
+		"https://creativecommons.org/licenses/by-nd/2.0":       "https://creativecommons.org/licenses/by-nd/2.0/legalcode",
+		"https://creativecommons.org/licenses/by-nd/2.5":       "https://creativecommons.org/licenses/by-nd/2.5/legalcode",
+		"https://creativecommons.org/licenses/by-nd/3.0":       "https://creativecommons.org/licenses/by-nd/3.0/legalcode",
+		"https://creativecommons.org/licenses/by-nd/4.0":       "https://creativecommons.org/licenses/by-nd/2.0/legalcode",
+		"https://creativecommons.org/licenses/by-sa/1.0":       "https://creativecommons.org/licenses/by-sa/1.0/legalcode",
+		"https://creativecommons.org/licenses/by-sa/2.0":       "https://creativecommons.org/licenses/by-sa/2.0/legalcode",
+		"https://creativecommons.org/licenses/by-sa/2.5":       "https://creativecommons.org/licenses/by-sa/2.5/legalcode",
+		"https://creativecommons.org/licenses/by-sa/3.0":       "https://creativecommons.org/licenses/by-sa/3.0/legalcode",
+		"https://creativecommons.org/licenses/by-sa/4.0":       "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc-nd/1.0":    "https://creativecommons.org/licenses/by-nc-nd/1.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc-nd/2.0":    "https://creativecommons.org/licenses/by-nc-nd/2.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc-nd/2.5":    "https://creativecommons.org/licenses/by-nc-nd/2.5/legalcode",
+		"https://creativecommons.org/licenses/by-nc-nd/3.0":    "https://creativecommons.org/licenses/by-nc-nd/3.0/legalcode",
+		"https://creativecommons.org/licenses/by-nc-nd/4.0":    "https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode",
+		"https://creativecommons.org/licenses/publicdomain":    "https://creativecommons.org/licenses/publicdomain/",
+		"https://creativecommons.org/publicdomain/zero/1.0":    "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+	}
+
+	if url == "" {
+		return "", nil
+	}
+	var err error
+	url, err = NormalizeUrl(url, true, true)
+	if err != nil {
+		return "", err
+	}
+	normalizedUrl, ok := NormalizedLicenses[url]
+	if !ok {
+		return url, fmt.Errorf("License URL not found")
+	}
+	return normalizedUrl, nil
+}
+
+func UrlToSPDX(url string) string {
+	// appreviated list from https://spdx.org/licenses/
+	SPDXLicenses := map[string]string{
+		"https://creativecommons.org/licenses/by/3.0/legalcode": "CC-BY-3.0",
+		"https://creativecommons.org/licenses/by/4.0/legalcode": "CC-BY-4.0",
+	}
+	id := SPDXLicenses[url]
+	return id
+}
+
+// Normalize URL
+func NormalizeUrl(str string, secure bool, lower bool) (string, error) {
+	u, err := url.Parse(str)
+	if err != nil {
+		return "", err
+	}
+	if u.Path[len(u.Path)-1] == '/' {
+		u.Path = u.Path[:len(u.Path)-1]
+	}
+	if secure && u.Scheme == "http" {
+		u.Scheme = "https"
+	}
+	if lower {
+		return strings.ToLower(u.String()), nil
+	}
+	return u.String(), nil
 }
