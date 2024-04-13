@@ -370,34 +370,39 @@ func main() {
 				return err
 			}
 
-			// supported content types
-			contentTypes := []string{"text/html", "application/vnd.commonmeta+json", "application/json", "text/markdown", "application/vnd.jats+xml", "application/xml", "application/pdf"}
-			if work == nil || !slices.Contains(contentTypes, contentType) {
-				if contentType == "text/html" {
-					ra, err := FindDoiRegistrationAgency(app.Dao(), pid)
+			// create a new work record if not found and the pid is a Crossref DOI
+			if work == nil {
+				ra, err := FindDoiRegistrationAgency(app.Dao(), pid)
+				if err != nil {
+					return err
+				}
+				if isDoi && ra == "Crossref" {
+					log.Printf("%s not found, looking up metadata...", pid)
+					content, err := GetCrossref(pid)
 					if err != nil {
 						return err
 					}
-					if isDoi && ra == "Crossref" {
-						log.Printf("%s not found, looking up metadata...", pid)
-						content, err := GetCrossref(pid)
-						if err != nil {
-							return err
-						}
-						work, err := ReadCrossref(content)
-						if err != nil {
-							return err
-						}
-						return c.JSON(http.StatusOK, work)
+					newWork, err := ReadCrossref(content)
+					if err != nil {
+						return err
 					}
-					// don't redirect non-DOI URLs
-					return c.JSON(http.StatusNotFound, map[string]string{"error": "Not found"})
-				} else if contentType == "application/vnd.commonmeta+json" || contentType == "application/json" {
-					// cant (yet) handle commonmeta content type, and not supported by Crossref or DataCite content negotiation
-					log.Printf("%s not converted to commonmeta", pid)
-					return c.JSON(http.StatusNotFound, map[string]string{"error": "Work not yet converted to Commonmeta format"})
+					if err := app.Dao().Save(newWork); err != nil {
+						return err
+					}
+
+					work, err = FindWorkByPid(app.Dao(), newWork.Pid)
+					if err != nil {
+						return err
+					}
 				}
-				// content negotiation is not supported for redirects
+			}
+			if work == nil {
+				return c.JSON(http.StatusNotFound, map[string]string{"error": "Not found"})
+			}
+
+			// redirect for content types supported by DOI content negotiation
+			contentTypes := []string{"text/html", "application/vnd.commonmeta+json", "application/json", "text/markdown", "application/vnd.jats+xml", "application/xml", "application/pdf"}
+			if !slices.Contains(contentTypes, contentType) {
 				// look up the DOI registration agency in works table and use link-based content negotiation
 				ra, err := FindDoiRegistrationAgency(app.Dao(), pid)
 				if err != nil {
@@ -444,7 +449,6 @@ func main() {
 					if err != nil {
 						return err
 					}
-					// dont save the updated references yet
 					// if err := app.Dao().Save(work); err != nil {
 					// 	return err
 					// }
@@ -700,7 +704,6 @@ func GetCrossref(pid string) (Content, error) {
 	if err != nil {
 		return response.Message, err
 	}
-	log.Println(string(body))
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		fmt.Println("error:", err)
