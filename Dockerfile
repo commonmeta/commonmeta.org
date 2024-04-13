@@ -19,6 +19,7 @@ RUN CGO_ENABLED=0 go build
 FROM --platform=$BUILDPLATFORM debian:bookworm-slim as runtime
 
 COPY --from=builder /pb/ /pb/
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 EXPOSE 8090
 
