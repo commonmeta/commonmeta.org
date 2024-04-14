@@ -563,11 +563,12 @@ func main() {
 					if err := app.Dao().Save(newWork); err != nil {
 						return err
 					}
+					return c.JSON(http.StatusOK, newWork)
 
-					work, err = FindWorkByPid(app.Dao(), newWork.Pid)
-					if err != nil {
-						return err
-					}
+					// work, err = FindWorkByPid(app.Dao(), newWork.Pid)
+					// if err != nil {
+					// 	return err
+					// }
 				}
 			}
 			if work == nil {
@@ -638,21 +639,18 @@ func main() {
 			for _, v := range f {
 				files[v.MimeType] = v.Url
 			}
-			markdownUrl := files["text/markdown"]
-			pdfUrl := files["application/pdf"]
-			jatsUrl := files["application/xml"]
+			var markdownUrl, pdfUrl, jatsUrl string
+			markdownUrl = files["text/markdown"]
+			pdfUrl = files["application/pdf"]
+			jatsUrl = files["application/xml"]
 			if jatsUrl == "" {
 				jatsUrl = files["application/vnd.jats+xml"]
-			}
-
-			// return error if work not yet converted to Commonmeta format
-			if work.Type == "" {
-				return c.JSON(http.StatusNotAcceptable, map[string]string{"error": "Work not yet converted to Commonmeta format"})
 			}
 
 			switch contentType {
 			case "application/vnd.commonmeta+json", "application/json":
 				// return metadata in Commonmeta format, handle JSON parsing errors
+				log.Printf("Returning metadata for %s in Commonmeta format", work.Pid)
 				_, err := json.Marshal(work)
 				if err != nil {
 					log.Println("error:", err)
@@ -984,22 +982,36 @@ func ReadCrossref(content Content) (*Work, error) {
 		return types.JsonRaw(b)
 	}
 	var publisher = func() types.JsonRaw {
-		return types.JsonRaw(fmt.Sprintf(`{"name": "%s"}`, content.Publisher))
+		if content.Publisher != "" {
+			p := Publisher{
+				Name: content.Publisher,
+			}
+			b, err := json.Marshal(p)
+			if err != nil {
+				return types.JsonRaw("{}")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("{}")
 	}
 	var date = func() types.JsonRaw {
+		var d Date
 		if content.Issued.DateTime != "" {
-			return types.JsonRaw(fmt.Sprintf(`{"published": "%s"}`, content.Issued.DateTime))
+			d.Published = content.Issued.DateTime
 		} else if len(content.Issued.DateAsParts) > 1 {
-			published := GetDateFromDateParts(content.Issued.DateAsParts)
-			return types.JsonRaw(fmt.Sprintf(`{"published": "%s"}`, published))
-		} else if content.Created.DateTime != "" {
-			return types.JsonRaw(fmt.Sprintf(`{"created": "%s"}`, content.Created.DateTime))
+			d.Published = GetDateFromDateParts(content.Issued.DateAsParts)
+		}
+		if content.Created.DateTime != "" {
+			d.Created = content.Created.DateTime
 		} else if len(content.Created.DateAsParts) > 1 {
-			created := GetDateFromDateParts(content.Created.DateAsParts)
-			return types.JsonRaw(fmt.Sprintf(`{"created": "%s"}`, created))
-		} else {
+			d.Created = GetDateFromDateParts(content.Created.DateAsParts)
+		}
+		b, err := json.Marshal(d)
+		if err != nil {
 			return types.JsonRaw("{}")
 		}
+		log.Println(string(b))
+		return types.JsonRaw(b)
 	}
 	var titles = func() types.JsonRaw {
 		if len(content.Title) > 0 {
@@ -1009,14 +1021,14 @@ func ReadCrossref(content Content) (*Work, error) {
 	}
 	var descriptions = func() types.JsonRaw {
 		if content.Abstract != "" {
-			sanitizedHTML, err := htmlsanitizer.SanitizeString(content.Abstract)
+			abstract, err := SanitizeHTML(content.Abstract)
 			if err != nil {
 				log.Println(err)
-				sanitizedHTML = ""
+				abstract = ""
 			}
 			d := make([]Description, 0)
 			d = append(d, Description{
-				Description: strings.Trim(sanitizedHTML, "\n"),
+				Description: abstract,
 				Type:        "Abstract",
 			})
 			b, err := json.Marshal(d)
@@ -1488,47 +1500,57 @@ func ReadDatacite(content Content) (*Work, error) {
 		return types.JsonRaw(b)
 	}
 	var publisher = func() types.JsonRaw {
-		return types.JsonRaw(fmt.Sprintf(`{"name": "%s"}`, content.Attributes.Publisher))
+		if content.Attributes.Publisher == "" {
+			p := Publisher{
+				Name: content.Publisher,
+			}
+			b, err := json.Marshal(p)
+			if err != nil {
+				return types.JsonRaw("{}")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("{}")
 	}
 	var date = func() types.JsonRaw {
 		if len(content.Attributes.Dates) > 0 {
-			var date Date
+			var d Date
 			for _, v := range content.Attributes.Dates {
 				if v.DateType == "Accepted" {
-					date.Accepted = v.Date
+					d.Accepted = v.Date
 				}
 				if v.DateType == "Available" {
-					date.Available = v.Date
+					d.Available = v.Date
 				}
 				if v.DateType == "Collected" {
-					date.Collected = v.Date
+					d.Collected = v.Date
 				}
 				if v.DateType == "Copyrighted" {
-					date.Copyrighted = v.Date
+					d.Copyrighted = v.Date
 				}
 				if v.DateType == "Created" {
-					date.Created = v.Date
+					d.Created = v.Date
 				}
 				if v.DateType == "Issued" {
-					date.Published = v.Date
+					d.Published = v.Date
 				}
 				if v.DateType == "Submitted" {
-					date.Submitted = v.Date
+					d.Submitted = v.Date
 				}
 				if v.DateType == "Updated" {
-					date.Updated = v.Date
+					d.Updated = v.Date
 				}
 				if v.DateType == "Valid" {
-					date.Valid = v.Date
+					d.Valid = v.Date
 				}
 				if v.DateType == "Withdrawn" {
-					date.Withdrawn = v.Date
+					d.Withdrawn = v.Date
 				}
 				if v.DateType == "Other" {
-					date.Other = v.Date
+					d.Other = v.Date
 				}
 			}
-			b, err := json.Marshal(date)
+			b, err := json.Marshal(d)
 			if err != nil {
 				return types.JsonRaw("{}")
 			}
@@ -1595,13 +1617,14 @@ func ReadDatacite(content Content) (*Work, error) {
 	}
 	var license = func() types.JsonRaw {
 		if len(content.Attributes.RightsList) > 0 {
-			id := UrlToSPDX(content.Attributes.RightsList[0].RightsURI)
+			url := content.Attributes.RightsList[0].RightsURI
+			id := UrlToSPDX(url)
 			if id == "" {
-				log.Printf("License URL %s not found in SPDX", content.Attributes.RightsList[0].RightsURI)
+				log.Printf("License URL %s not found in SPDX", url)
 			}
 			license := License{
 				ID:  id,
-				Url: content.Attributes.RightsList[0].RightsURI,
+				Url: url,
 			}
 			b, err := json.Marshal(license)
 			if err != nil {
@@ -1737,8 +1760,13 @@ func ReadDatacite(content Content) (*Work, error) {
 				} else {
 					type_ = ""
 				}
+				description, err := SanitizeHTML(v.Description)
+				if err != nil {
+					log.Println(err)
+					description = ""
+				}
 				d[i] = Description{
-					Description: v.Description,
+					Description: description,
 					Type:        type_,
 					Language:    v.Lang,
 				}
@@ -1818,8 +1846,8 @@ func ReadDatacite(content Content) (*Work, error) {
 		GeoLocations:         geoLocations(),
 		Provider:             provider,
 		AlternateIdentifiers: alternateIdentifiers(),
-		Files:                types.JsonRaw(nil),
-		ArchiveLocations:     types.JsonRaw(nil),
+		Files:                types.JsonRaw("[]"),
+		ArchiveLocations:     types.JsonRaw("[]"),
 		Created:              types.NowDateTime(),
 		Updated:              types.NowDateTime(),
 	}
@@ -1862,6 +1890,15 @@ func DOIAsUrl(str string) string {
 		return ""
 	}
 	return "https://doi.org/" + str
+}
+
+func SanitizeHTML(html string) (string, error) {
+	sanitizedHTML, err := htmlsanitizer.SanitizeString(html)
+	if err != nil {
+		return "", err
+	}
+	str := strings.Trim(sanitizedHTML, "\n")
+	return str, nil
 }
 
 func GetDateFromDateParts(dateAsParts []DateParts) string {
