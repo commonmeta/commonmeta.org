@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/pocketbase/pocketbase/daos"
 	"github.com/pocketbase/pocketbase/models"
 	"github.com/pocketbase/pocketbase/tools/types"
+	"github.com/sym01/htmlsanitizer"
 )
 
 // ensures that the Work struct satisfy the models.Model interface
@@ -113,15 +115,114 @@ type Content struct {
 }
 
 type Attributes struct {
-	DOI             string    `json:"doi"`
-	Prefix          string    `json:"prefix"`
-	Suffix          string    `json:"suffix"`
-	Creators        []Creator `json:"creators"`
-	Publisher       string    `json:"publisher"`
-	Container       Container `json:"container"`
-	PublicationYear int       `json:"publicationYear"`
-	Titles          []Title   `json:"titles"`
-	Url             string    `json:"url"`
+	DOI                  string `json:"doi"`
+	Prefix               string `json:"prefix"`
+	Suffix               string `json:"suffix"`
+	AlternateIdentifiers []struct {
+		Identifier     string `json:"identifier"`
+		IdentifierType string `json:"identifierType"`
+	} `json:"alternateIdentifiers"`
+	Creators []struct {
+		Name            string `json:"name"`
+		GivenName       string `json:"givenName"`
+		FamilyName      string `json:"familyName"`
+		NameType        string `json:"nameType"`
+		NameIdentifiers []struct {
+			SchemeURI            string `json:"schemeUri"`
+			NameIdentifier       string `json:"nameIdentifier"`
+			NameIdentifierScheme string `json:"nameIdentifierScheme"`
+		} `json:"nameIdentifiers"`
+		Affiliation []string `json:"affiliation"`
+	} `json:"creators"`
+	Publisher string `json:"publisher"`
+	Container struct {
+		Type           string `json:"type"`
+		Identifier     string `json:"identifier"`
+		IdentifierType string `json:"identifierType"`
+		Title          string `json:"title"`
+		Volume         string `json:"volume"`
+		Issue          string `json:"issue"`
+		FirstPage      string `json:"firstPage"`
+		LastPage       string `json:"lastPage"`
+	} `json:"container"`
+	PublicationYear int `json:"publicationYear"`
+	Titles          []struct {
+		Title     string `json:"title"`
+		TitleType string `json:"titleType"`
+		Lang      string `json:"lang"`
+	} `json:"titles"`
+	Url      string `json:"url"`
+	Subjects []struct {
+		Subject string `json:"subject"`
+	} `json:"subjects"`
+	Contributors []struct {
+		Name            string `json:"name"`
+		GivenName       string `json:"givenName"`
+		FamilyName      string `json:"familyName"`
+		NameType        string `json:"nameType"`
+		NameIdentifiers []struct {
+			SchemeURI            string `json:"schemeUri"`
+			NameIdentifier       string `json:"nameIdentifier"`
+			NameIdentifierScheme string `json:"nameIdentifierScheme"`
+		} `json:"nameIdentifiers"`
+		Affiliation     []string `json:"affiliation"`
+		ContributorType string   `json:"contributorType"`
+	} `json:"contributors"`
+	Dates []struct {
+		Date            string `json:"date"`
+		DateType        string `json:"dateType"`
+		DateInformation string `json:"dateInformation"`
+	} `json:"dates"`
+	Language string `json:"language"`
+	Types    struct {
+		ResourceTypeGeneral string `json:"resourceTypeGeneral"`
+		ResourceType        string `json:"resourceType"`
+	} `json:"types"`
+	RelatedIdentifiers []struct {
+		RelatedIdentifier     string `json:"relatedIdentifier"`
+		RelatedIdentifierType string `json:"relatedIdentifierType"`
+		RelationType          string `json:"relationType"`
+	} `json:"relatedIdentifiers"`
+	Sizes      []string `json:"sizes"`
+	Formats    []string `json:"formats"`
+	Version    string   `json:"version"`
+	RightsList []struct {
+		Rights                 string `json:"rights"`
+		RightsURI              string `json:"rightsUri"`
+		SchemeURI              string `json:"schemeUri"`
+		RightsIdentifier       string `json:"rightsIdentifier"`
+		RightsIdentifierScheme string `json:"rightsIdentifierScheme"`
+	}
+	Descriptions []struct {
+		Description     string `json:"description"`
+		DescriptionType string `json:"descriptionType"`
+		Lang            string `json:"lang"`
+	} `json:"descriptions"`
+	GeoLocations []struct {
+		GeoLocationPoint struct {
+			PointLongitude float64 `json:"pointLongitude"`
+			PointLatitude  float64 `json:"pointLatitude"`
+		} `json:"geoLocationPoint"`
+		GeoLocationBox struct {
+			WestBoundLongitude float64 `json:"westBoundLongitude"`
+			EastBoundLongitude float64 `json:"eastBoundLongitude"`
+			SouthBoundLatitude float64 `json:"southBoundLatitude"`
+			NorthBoundLatitude float64 `json:"northBoundLatitude"`
+		} `json:"geoLocationBox"`
+		GeoLocationPlace string `json:"geoLocationPlace"`
+	} `json:"geoLocations"`
+	FundingReferences []struct {
+		FunderName           string `json:"funderName"`
+		FunderIdentifier     string `json:"funderIdentifier"`
+		FunderIdentifierType string `json:"funderIdentifierType"`
+		AwardNumber          string `json:"awardNumber"`
+		AwardURI             string `json:"awardUri"`
+	} `json:"fundingReferences"`
+}
+
+type AlternateIdentifier struct {
+	Identifier     string `json:"identifier"`
+	IdentifierType string `json:"identifierType"`
 }
 
 type Author struct {
@@ -168,15 +269,42 @@ type Contributor struct {
 }
 
 type Creator struct {
-	Type           string `json:"type"`
-	Identifier     string `json:"identifier"`
-	IdentifierType string `json:"identifierType"`
-	Name           string `json:"name"`
+	NameType        string `json:"nameType"`
+	Name            string `json:"name"`
+	GivenName       string `json:"givenName"`
+	FamilyName      string `json:"familyName"`
+	NameIdentifiers []struct {
+		SchemeURI            string `json:"schemeUri"`
+		NameIdentifier       string `json:"nameIdentifier"`
+		NameIdentifierScheme string `json:"nameIdentifierScheme"`
+	} `json:"nameIdentifiers"`
+	Affiliation []string `json:"affiliation"`
 }
 
 type CrossrefRelation struct {
 	ID     string `json:"id"`
 	IDType string `json:"id-type"`
+}
+
+type Date struct {
+	Created     string `json:"created,omitempty"`
+	Submitted   string `json:"submitted,omitempty"`
+	Accepted    string `json:"accepted,omitempty"`
+	Published   string `json:"published,omitempty"`
+	Updated     string `json:"updated,omitempty"`
+	Accessed    string `json:"accessed,omitempty"`
+	Available   string `json:"available,omitempty"`
+	Copyrighted string `json:"copyrighted,omitempty"`
+	Collected   string `json:"collected,omitempty"`
+	Valid       string `json:"valid,omitempty"`
+	Withdrawn   string `json:"withdrawn,omitempty"`
+	Other       string `json:"other,omitempty"`
+}
+
+type Description struct {
+	Description string `json:"description"`
+	Type        string `json:"type,omitempty"`
+	Language    string `json:"language,omitempty"`
 }
 
 type File struct {
@@ -194,6 +322,34 @@ type FundingReference struct {
 	FunderName           string `json:"funderName"`
 	AwardNumber          string `json:"awardNumber,omitempty"`
 	AwardURI             string `json:"award_uri,omitempty"`
+}
+
+type GeoLocation struct {
+	GeoLocationPlace string           `json:"geoLocationPlace,omitempty"`
+	GeoLocationPoint GeoLocationPoint `json:"geoLocationPoint,omitempty"`
+	GeoLocationBox   struct {
+		EastBoundLongitude float64 `json:"eastBoundLongitude"`
+		WestBoundLongitude float64 `json:"westBoundLongitude"`
+		SouthBoundLatitude float64 `json:"southBoundLatitude"`
+		NorthBoundLatitude float64 `json:"northBoundLatitude"`
+	} `json:"geoLocationBox,omitempty"`
+}
+
+type GeoLocationPoint struct {
+	PointLongitude float64 `json:"pointLongitude,omitempty"`
+	PointLatitude  float64 `json:"pointLatitude,omitempty"`
+}
+
+type GeoLocationBox struct {
+	EastBoundLongitude float64 `json:"eastBoundLongitude"`
+	WestBoundLongitude float64 `json:"westBoundLongitude"`
+	SouthBoundLatitude float64 `json:"southBoundLatitude"`
+	NorthBoundLatitude float64 `json:"northBoundLatitude"`
+}
+
+type GeoLocationPolygon struct {
+	PolygonPoints  []GeoLocationPoint `json:"polygon_points"`
+	InPolygonPoint GeoLocationPoint   `json:"in_polygon_point,omitempty"`
 }
 
 type License struct {
@@ -225,8 +381,8 @@ type Subject struct {
 
 type Title struct {
 	Title    string `json:"title"`
-	Type     string `json:"type"`
-	Language string `json:"language"`
+	Type     string `json:"type,omitempty"`
+	Language string `json:"language,omitempty"`
 }
 
 type Work struct {
@@ -377,12 +533,30 @@ func main() {
 					return err
 				}
 				if isDoi && ra == "Crossref" {
-					log.Printf("%s not found, looking up metadata...", pid)
+					log.Printf("%s not found, looking up metadata with Crossref ...", pid)
 					content, err := GetCrossref(pid)
 					if err != nil {
 						return err
 					}
 					newWork, err := ReadCrossref(content)
+					if err != nil {
+						return err
+					}
+					if err := app.Dao().Save(newWork); err != nil {
+						return err
+					}
+
+					work, err = FindWorkByPid(app.Dao(), newWork.Pid)
+					if err != nil {
+						return err
+					}
+				} else if isDoi && ra == "DataCite" {
+					log.Printf("%s not found, looking up metadata with DataCite ...", pid)
+					content, err := GetDatacite(pid)
+					if err != nil {
+						return err
+					}
+					newWork, err := ReadDatacite(content)
 					if err != nil {
 						return err
 					}
@@ -414,7 +588,6 @@ func main() {
 				case "DataCite":
 					return c.Redirect(http.StatusFound, fmt.Sprintf("https://data.crosscite.org/%s/%s", contentType, str))
 				default:
-					log.Printf("Doi registration agency for %s not found", pid)
 					return c.JSON(http.StatusNotFound, map[string]string{"error": "Work not found and content negotiation not supported"})
 				}
 			}
@@ -432,12 +605,12 @@ func main() {
 			}
 			if len(r) > 0 {
 				// generate a list of pid strings
-				refs := make([]string, len(r))
-				for i, v := range r {
+				refs := make([]string, 0)
+				for _, v := range r {
 					if v.Doi != "" {
-						refs[i] = v.Doi
+						refs = append(refs, v.Doi)
 					} else if v.Url != "" {
-						refs[i] = v.Url
+						refs = append(refs, v.Url)
 					}
 				}
 				references, err := FindWorksByPids(app.Dao(), refs...)
@@ -479,7 +652,13 @@ func main() {
 
 			switch contentType {
 			case "application/vnd.commonmeta+json", "application/json":
-				// return metadata in Commonmeta format
+				// return metadata in Commonmeta format, handle JSON parsing errors
+				_, err := json.Marshal(work)
+				if err != nil {
+					log.Println("error:", err)
+					message := fmt.Sprintf("%+v\n", work)
+					return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error marshalling JSON", "message": message})
+				}
 				return c.JSON(http.StatusOK, work)
 			case "text/markdown":
 				// redirect to markdown version of the resource if available
@@ -634,7 +813,9 @@ func FindDoiRegistrationAgency(dao *daos.Dao, doi string) (string, error) {
 		One(work)
 
 	if err == sql.ErrNoRows {
+		// if not found in works collection, look up DOI registration agency from handle service
 		ra, err := FindDoiRegistrationAgencyFromHandle(dao, substr)
+		log.Printf("DOI registration agency for %s: %s", doi, ra)
 		if err != nil {
 			return "", err
 		}
@@ -652,12 +833,11 @@ func FindDoiRegistrationAgencyFromHandle(dao *daos.Dao, doi string) (string, err
 		DOI string `json:"DOI"`
 		RA  string `json:"RA"`
 	}
-	u, err := url.Parse(doi)
+	prefix, err := PrefixFromUrl(doi)
 	if err != nil {
 		return "", err
 	}
-	substr := u.Path[1:]
-	resp, err := http.Get(fmt.Sprintf("https://doi.org/ra/%s", substr))
+	resp, err := http.Get(fmt.Sprintf("https://doi.org/ra/%s", prefix))
 	if err != nil {
 		return "", err
 	}
@@ -768,7 +948,7 @@ func ReadCrossref(content Content) (*Work, error) {
 	}
 
 	pid := DOIAsUrl(content.DOI)
-	url := content.Resource.Primary.URL
+	Url := content.Resource.Primary.URL
 	provider := "Crossref"
 	Type := CRToCMMappings[content.Type]
 
@@ -829,7 +1009,21 @@ func ReadCrossref(content Content) (*Work, error) {
 	}
 	var descriptions = func() types.JsonRaw {
 		if content.Abstract != "" {
-			return types.JsonRaw(fmt.Sprintf(`[{"description": "%s", "descriptionType": "Abstract"}]`, content.Abstract))
+			sanitizedHTML, err := htmlsanitizer.SanitizeString(content.Abstract)
+			if err != nil {
+				log.Println(err)
+				sanitizedHTML = ""
+			}
+			d := make([]Description, 0)
+			d = append(d, Description{
+				Description: strings.Trim(sanitizedHTML, "\n"),
+				Type:        "Abstract",
+			})
+			b, err := json.Marshal(d)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
 		}
 		return types.JsonRaw("[]")
 	}
@@ -931,7 +1125,7 @@ func ReadCrossref(content Content) (*Work, error) {
 	}
 	var fundingReferences = func() types.JsonRaw {
 		if content.Funder != nil {
-			fundingReferences := make([]FundingReference, 0)
+			f := make([]FundingReference, 0)
 			for _, v := range content.Funder {
 				funderIdentifier := DOIAsUrl(v.DOI)
 				var funderIdentifierType string
@@ -940,7 +1134,7 @@ func ReadCrossref(content Content) (*Work, error) {
 				}
 				if len(v.Award) > 0 {
 					for _, award := range v.Award {
-						fundingReferences = append(fundingReferences, FundingReference{
+						f = append(f, FundingReference{
 							FunderIdentifier:     funderIdentifier,
 							FunderIdentifierType: funderIdentifierType,
 							FunderName:           v.Name,
@@ -948,15 +1142,15 @@ func ReadCrossref(content Content) (*Work, error) {
 						})
 					}
 				} else {
-					fundingReferences = append(fundingReferences, FundingReference{
+					f = append(f, FundingReference{
 						FunderIdentifier:     funderIdentifier,
 						FunderIdentifierType: funderIdentifierType,
 						FunderName:           v.Name,
 					})
 				}
 			}
-			fundingReferences = RemoveDuplicates(fundingReferences)
-			b, err := json.Marshal(fundingReferences)
+			f = dedupeSlice(f)
+			b, err := json.Marshal(f)
 			if err != nil {
 				return types.JsonRaw("[]")
 			}
@@ -985,17 +1179,17 @@ func ReadCrossref(content Content) (*Work, error) {
 	}
 	var files = func() types.JsonRaw {
 		if len(content.Link) > 0 {
-			files := make([]File, 0)
+			f := make([]File, 0)
 			for _, v := range content.Link {
 				if v.ContentType != "unspecified" {
-					files = append(files, File{
+					f = append(f, File{
 						Url:      v.Url,
 						MimeType: v.ContentType,
 					})
 				}
 			}
-			files = RemoveDuplicates(files)
-			b, err := json.Marshal(files)
+			f = dedupeSlice(f)
+			b, err := json.Marshal(f)
 			if err != nil {
 				return types.JsonRaw("[]")
 			}
@@ -1005,9 +1199,9 @@ func ReadCrossref(content Content) (*Work, error) {
 	}
 	var archiveLocations = func() types.JsonRaw {
 		if len(content.Archive) > 0 {
-			archiveLocations := make([]string, len(content.Archive))
-			copy(archiveLocations, content.Archive)
-			b, err := json.Marshal(archiveLocations)
+			a := make([]string, len(content.Archive))
+			copy(a, content.Archive)
+			b, err := json.Marshal(a)
 			if err != nil {
 				return types.JsonRaw("[]")
 			}
@@ -1020,7 +1214,7 @@ func ReadCrossref(content Content) (*Work, error) {
 		Pid:                  pid,
 		Type:                 Type,
 		AdditionalType:       "",
-		Url:                  url,
+		Url:                  Url,
 		Contributors:         contributors(),
 		Publisher:            publisher(),
 		Date:                 date(),
@@ -1047,6 +1241,591 @@ func ReadCrossref(content Content) (*Work, error) {
 	return work, nil
 }
 
+func GetDatacite(pid string) (Content, error) {
+	// the envelope for the JSON response from the DataCite API
+	type Response struct {
+		Data Content `json:"data"`
+	}
+
+	var response Response
+	doi, err := DOIFromUrl(pid)
+	if err != nil {
+		return response.Data, err
+	}
+	url := "https://api.datacite.org/dois/" + doi
+	client := http.Client{
+		Timeout: time.Second * 10,
+	}
+	resp, err := client.Get(url)
+	if err != nil {
+		return response.Data, err
+	}
+	if resp.StatusCode >= 400 {
+		return response.Data, fmt.Errorf("status code error: %d %s", resp.StatusCode, resp.Status)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return response.Data, err
+	}
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	return response.Data, err
+}
+
+// read DataCite JSON response and return work struct in Commonmeta format
+func ReadDatacite(content Content) (*Work, error) {
+
+	// source: https://github.com/datacite/schema/blob/master/source/meta/kernel-4/include/datacite-resourceType-v4.xsd
+	DCToCMTranslations := map[string]string{
+		"Audiovisual":           "Audiovisual",
+		"BlogPosting":           "Article",
+		"Book":                  "Book",
+		"BookChapter":           "BookChapter",
+		"Collection":            "Collection",
+		"ComputationalNotebook": "ComputationalNotebook",
+		"ConferencePaper":       "ProceedingsArticle",
+		"ConferenceProceeding":  "Proceedings",
+		"DataPaper":             "JournalArticle",
+		"Dataset":               "Dataset",
+		"Dissertation":          "Dissertation",
+		"Event":                 "Event",
+		"Image":                 "Image",
+		"Instrument":            "Instrument",
+		"InteractiveResource":   "InteractiveResource",
+		"Journal":               "Journal",
+		"JournalArticle":        "JournalArticle",
+		"Model":                 "Model",
+		"OutputManagementPlan":  "OutputManagementPlan",
+		"PeerReview":            "PeerReview",
+		"PhysicalObject":        "PhysicalObject",
+		"Poster":                "Presentation",
+		"Preprint":              "Article",
+		"Report":                "Report",
+		"Service":               "Service",
+		"Software":              "Software",
+		"Sound":                 "Sound",
+		"Standard":              "Standard",
+		"StudyRegistration":     "StudyRegistration",
+		"Text":                  "Document",
+		"Thesis":                "Dissertation",
+		"Workflow":              "Workflow",
+		"Other":                 "Other",
+	}
+	// from commonmeta schema
+	CommonmetaContributorRoles := []string{
+		"Author",
+		"Editor",
+		"Chair",
+		"Reviewer",
+		"ReviewAssistant",
+		"StatsReviewer",
+		"ReviewerExternal",
+		"Reader",
+		"Translator",
+		"ContactPerson",
+		"DataCollector",
+		"DataManager",
+		"Distributor",
+		"HostingInstitution",
+		"Producer",
+		"ProjectLeader",
+		"ProjectManager",
+		"ProjectMember",
+		"RegistrationAgency",
+		"RegistrationAuthority",
+		"RelatedPerson",
+		"ResearchGroup",
+		"RightsHolder",
+		"Researcher",
+		"Sponsor",
+		"WorkPackageLeader",
+		"Conceptualization",
+		"DataCuration",
+		"FormalAnalysis",
+		"FundingAcquisition",
+		"Investigation",
+		"Methodology",
+		"ProjectAdministration",
+		"Resources",
+		"Software",
+		"Supervision",
+		"Validation",
+		"Visualization",
+		"WritingOriginalDraft",
+		"WritingReviewEditing",
+		"Maintainer",
+		"Other",
+	}
+
+	pid := DOIAsUrl(content.Attributes.DOI)
+	Url := content.Attributes.Url
+	provider := "DataCite"
+	Type := DCToCMTranslations[content.Attributes.Types.ResourceTypeGeneral]
+	additionalType := DCToCMTranslations[content.Attributes.Types.ResourceType]
+	if additionalType != "" {
+		Type = additionalType
+		additionalType = ""
+	} else {
+		additionalType = content.Attributes.Types.ResourceType
+	}
+	var contributors = func() types.JsonRaw {
+		c := make([]Contributor, 0)
+		for _, v := range content.Attributes.Creators {
+			if v.Name != "" || v.GivenName != "" || v.FamilyName != "" {
+				type_ := v.NameType[:len(v.NameType)-2]
+				var id string
+				if len(v.NameIdentifiers) > 0 {
+					ni := v.NameIdentifiers[0]
+					id = ni.NameIdentifier
+					u, _ := url.Parse(ni.NameIdentifier)
+					schemeUri := ni.SchemeURI
+					if schemeUri == "" {
+						u.Path = ""
+						schemeUri = u.String()
+					}
+					if schemeUri == "https://orcid.org" {
+						type_ = "Person"
+					} else if schemeUri == "https://ror.org" {
+						type_ = "Organization"
+					}
+				}
+				name := v.Name
+				if type_ == "" && (v.GivenName != "" || v.FamilyName != "") {
+					type_ = "Person"
+					name = ""
+				} else if type_ == "" {
+					type_ = "Organization"
+				}
+				affiliations := make([]struct {
+					ID   string `json:"id,omitempty"`
+					Name string `json:"name,omitempty"`
+				}, 0)
+				for _, a := range v.Affiliation {
+					an := struct {
+						ID   string `json:"id,omitempty"`
+						Name string `json:"name,omitempty"`
+					}{ID: "", Name: a}
+					affiliations = append(affiliations, an)
+				}
+				c = append(c, Contributor{
+					ID:               id,
+					Type:             type_,
+					GivenName:        v.GivenName,
+					FamilyName:       v.FamilyName,
+					Name:             name,
+					ContributorRoles: []string{"Author"},
+					Affiliations:     affiliations,
+				})
+			}
+		}
+		// merge creators and contributors
+		for _, v := range content.Attributes.Contributors {
+			if v.Name != "" || v.GivenName != "" || v.FamilyName != "" {
+				var type_ string
+				if len(v.NameType) > 2 {
+					type_ = v.NameType[:len(v.NameType)-2]
+				}
+				var id string
+				if len(v.NameIdentifiers) > 0 {
+					ni := v.NameIdentifiers[0]
+					if ni.NameIdentifierScheme == "ORCID" {
+						id = ni.NameIdentifier
+						type_ = "Person"
+					} else if ni.NameIdentifierScheme == "ROR" {
+						id = ni.NameIdentifier
+						type_ = "Organization"
+					} else {
+						id = ni.NameIdentifier
+					}
+				}
+				name := v.Name
+				if type_ == "" && (v.GivenName != "" || v.FamilyName != "") {
+					type_ = "Person"
+					name = ""
+				} else if type_ == "" {
+					type_ = "Organization"
+				}
+				affiliations := make([]struct {
+					ID   string `json:"id,omitempty"`
+					Name string `json:"name,omitempty"`
+				}, 0)
+				for _, a := range v.Affiliation {
+					an := struct {
+						ID   string `json:"id,omitempty"`
+						Name string `json:"name,omitempty"`
+					}{ID: "", Name: a}
+					affiliations = append(affiliations, an)
+				}
+				roles := make([]string, 0)
+				if slices.Contains(CommonmetaContributorRoles, v.ContributorType) {
+					roles = append(roles, v.ContributorType)
+				}
+				containsID := slices.ContainsFunc(c, func(e Contributor) bool {
+					return e.ID == id
+				})
+				if containsID {
+					log.Printf("Contributor with ID %s already exists", id)
+				} else {
+					c = append(c, Contributor{
+						ID:               id,
+						Type:             type_,
+						GivenName:        v.GivenName,
+						FamilyName:       v.FamilyName,
+						Name:             name,
+						ContributorRoles: roles,
+						Affiliations:     affiliations,
+					})
+				}
+			}
+		}
+		b, err := json.Marshal(c)
+		if err != nil {
+			return types.JsonRaw("[]")
+		}
+		return types.JsonRaw(b)
+	}
+	var publisher = func() types.JsonRaw {
+		return types.JsonRaw(fmt.Sprintf(`{"name": "%s"}`, content.Attributes.Publisher))
+	}
+	var date = func() types.JsonRaw {
+		if len(content.Attributes.Dates) > 0 {
+			var date Date
+			for _, v := range content.Attributes.Dates {
+				if v.DateType == "Accepted" {
+					date.Accepted = v.Date
+				}
+				if v.DateType == "Available" {
+					date.Available = v.Date
+				}
+				if v.DateType == "Collected" {
+					date.Collected = v.Date
+				}
+				if v.DateType == "Copyrighted" {
+					date.Copyrighted = v.Date
+				}
+				if v.DateType == "Created" {
+					date.Created = v.Date
+				}
+				if v.DateType == "Issued" {
+					date.Published = v.Date
+				}
+				if v.DateType == "Submitted" {
+					date.Submitted = v.Date
+				}
+				if v.DateType == "Updated" {
+					date.Updated = v.Date
+				}
+				if v.DateType == "Valid" {
+					date.Valid = v.Date
+				}
+				if v.DateType == "Withdrawn" {
+					date.Withdrawn = v.Date
+				}
+				if v.DateType == "Other" {
+					date.Other = v.Date
+				}
+			}
+			b, err := json.Marshal(date)
+			if err != nil {
+				return types.JsonRaw("{}")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("{}")
+	}
+	var titles = func() types.JsonRaw {
+		if len(content.Attributes.Titles) > 0 {
+			titles := make([]Title, len(content.Attributes.Titles))
+			for i, v := range content.Attributes.Titles {
+				var type_ string
+				if slices.Contains([]string{"MainTitle", "Subtitle", "TranslatedTitle"}, v.TitleType) {
+					type_ = v.TitleType
+				} else {
+					type_ = ""
+				}
+				titles[i] = Title{
+					Title:    v.Title,
+					Type:     type_,
+					Language: v.Lang,
+				}
+			}
+			b, err := json.Marshal(titles)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("[]")
+	}
+	var container = func() types.JsonRaw {
+		c := Container{
+			Identifier:     content.Attributes.Container.Identifier,
+			IdentifierType: content.Attributes.Container.IdentifierType,
+			Type:           content.Attributes.Container.Type,
+			Title:          content.Attributes.Container.Title,
+			Volume:         content.Attributes.Container.Volume,
+			Issue:          content.Attributes.Container.Issue,
+			FirstPage:      content.Attributes.Container.FirstPage,
+			LastPage:       content.Attributes.Container.LastPage,
+		}
+		b, err := json.Marshal(c)
+		if err != nil {
+			return types.JsonRaw("{}")
+		}
+		return types.JsonRaw(b)
+	}
+	var subjects = func() types.JsonRaw {
+		if len(content.Attributes.Subjects) > 0 {
+			subjects := make([]Subject, len(content.Attributes.Subjects))
+			for i, v := range content.Attributes.Subjects {
+				subjects[i] = Subject{
+					Subject: v.Subject,
+				}
+			}
+			b, err := json.Marshal(subjects)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("[]")
+	}
+	var license = func() types.JsonRaw {
+		if len(content.Attributes.RightsList) > 0 {
+			id := UrlToSPDX(content.Attributes.RightsList[0].RightsURI)
+			if id == "" {
+				log.Printf("License URL %s not found in SPDX", content.Attributes.RightsList[0].RightsURI)
+			}
+			license := License{
+				ID:  id,
+				Url: content.Attributes.RightsList[0].RightsURI,
+			}
+			b, err := json.Marshal(license)
+			if err != nil {
+				return types.JsonRaw("{}")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("{}")
+	}
+	var sizes = func() types.JsonRaw {
+		if len(content.Attributes.Sizes) > 0 {
+			s := make([]string, len(content.Attributes.Sizes))
+			copy(s, content.Attributes.Sizes)
+			b, err := json.Marshal(s)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("[]")
+	}
+	var formats = func() types.JsonRaw {
+		if len(content.Attributes.Formats) > 0 {
+			f := make([]string, len(content.Attributes.Formats))
+			copy(f, content.Attributes.Formats)
+			b, err := json.Marshal(f)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("[]")
+	}
+	var references = func() types.JsonRaw {
+		if len(content.Attributes.RelatedIdentifiers) > 0 {
+			r := make([]Reference, 0)
+			supportedRelations := []string{
+				"Cites",
+				"References",
+			}
+			for i, v := range content.Attributes.RelatedIdentifiers {
+				if slices.Contains(supportedRelations, v.RelationType) {
+					isDoi, _ := regexp.MatchString(`^10\.\d{4,9}/.+$`, v.RelatedIdentifier)
+					var doi, unstructured string
+					if isDoi {
+						doi = DOIAsUrl(v.RelatedIdentifier)
+					} else {
+						unstructured = v.RelatedIdentifier
+					}
+					r = append(r, Reference{
+						Key:          "ref" + strconv.Itoa(i+1),
+						Doi:          doi,
+						Unstructured: unstructured,
+					})
+				}
+			}
+			b, err := json.Marshal(r)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("[]")
+	}
+	var relations = func() types.JsonRaw {
+		if len(content.Attributes.RelatedIdentifiers) > 0 {
+			r := make([]Relation, 0)
+			supportedRelations := []string{
+				"IsNewVersionOf",
+				"IsPreviousVersionOf",
+				"IsVersionOf",
+				"HasVersion",
+				"IsPartOf",
+				"HasPart",
+				"IsVariantFormOf",
+				"IsOriginalFormOf",
+				"IsIdenticalTo",
+				"IsTranslationOf",
+				"IsReviewedBy",
+				"Reviews",
+				"IsPreprintOf",
+				"HasPreprint",
+				"IsSupplementTo",
+			}
+			for _, v := range content.Attributes.RelatedIdentifiers {
+				if slices.Contains(supportedRelations, v.RelationType) {
+					isDoi, _ := regexp.MatchString(`^10\.\d{4,9}/.+$`, v.RelatedIdentifier)
+					identifier := v.RelatedIdentifier
+					if isDoi {
+						identifier = DOIAsUrl(v.RelatedIdentifier)
+					}
+					r = append(r, Relation{
+						ID:   identifier,
+						Type: v.RelationType,
+					})
+				}
+			}
+			b, err := json.Marshal(r)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("[]")
+	}
+	var fundingReferences = func() types.JsonRaw {
+		if len(content.Attributes.FundingReferences) > 0 {
+			f := make([]FundingReference, len(content.Attributes.FundingReferences))
+			for i, v := range content.Attributes.FundingReferences {
+				f[i] = FundingReference{
+					FunderIdentifier:     v.FunderIdentifier,
+					FunderIdentifierType: v.FunderIdentifierType,
+					FunderName:           v.FunderName,
+					AwardNumber:          v.AwardNumber,
+					AwardURI:             v.AwardURI,
+				}
+			}
+			b, err := json.Marshal(f)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("[]")
+	}
+	var descriptions = func() types.JsonRaw {
+		if len(content.Attributes.Descriptions) > 0 {
+			d := make([]Description, len(content.Attributes.Descriptions))
+			for i, v := range content.Attributes.Descriptions {
+				var type_ string
+				if slices.Contains([]string{"Abstract", "Summary", "Methods", "TechnicalInfo", "Other"}, v.DescriptionType) {
+					type_ = v.DescriptionType
+				} else {
+					type_ = ""
+				}
+				d[i] = Description{
+					Description: v.Description,
+					Type:        type_,
+					Language:    v.Lang,
+				}
+			}
+			b, err := json.Marshal(d)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("[]")
+	}
+	var geoLocations = func() types.JsonRaw {
+		if len(content.Attributes.GeoLocations) > 0 {
+			g := make([]GeoLocation, len(content.Attributes.GeoLocations))
+			for i, v := range content.Attributes.GeoLocations {
+				g[i] = GeoLocation{
+					GeoLocationPoint: GeoLocationPoint{
+						PointLongitude: v.GeoLocationPoint.PointLongitude,
+						PointLatitude:  v.GeoLocationPoint.PointLatitude,
+					},
+					GeoLocationPlace: v.GeoLocationPlace,
+					GeoLocationBox: GeoLocationBox{
+						EastBoundLongitude: v.GeoLocationBox.EastBoundLongitude,
+						WestBoundLongitude: v.GeoLocationBox.WestBoundLongitude,
+						SouthBoundLatitude: v.GeoLocationBox.SouthBoundLatitude,
+						NorthBoundLatitude: v.GeoLocationBox.NorthBoundLatitude,
+					},
+				}
+			}
+			b, err := json.Marshal(g)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("[]")
+	}
+	var alternateIdentifiers = func() types.JsonRaw {
+		if len(content.Attributes.AlternateIdentifiers) > 0 {
+			a := make([]AlternateIdentifier, len(content.Attributes.AlternateIdentifiers))
+			for i, v := range content.Attributes.AlternateIdentifiers {
+				a[i] = AlternateIdentifier{
+					Identifier:     v.Identifier,
+					IdentifierType: v.IdentifierType,
+				}
+			}
+			b, err := json.Marshal(a)
+			if err != nil {
+				return types.JsonRaw("[]")
+			}
+			return types.JsonRaw(b)
+		}
+		return types.JsonRaw("[]")
+	}
+
+	work := &Work{
+		Pid:                  pid,
+		Type:                 Type,
+		AdditionalType:       additionalType,
+		Url:                  Url,
+		Contributors:         contributors(),
+		Publisher:            publisher(),
+		Date:                 date(),
+		Titles:               titles(),
+		Container:            container(),
+		Subjects:             subjects(),
+		Sizes:                sizes(),
+		Formats:              formats(),
+		Language:             content.Attributes.Language,
+		License:              license(),
+		Version:              content.Attributes.Version,
+		References:           references(),
+		Relations:            relations(),
+		FundingReferences:    fundingReferences(),
+		Descriptions:         descriptions(),
+		GeoLocations:         geoLocations(),
+		Provider:             provider,
+		AlternateIdentifiers: alternateIdentifiers(),
+		Files:                types.JsonRaw(nil),
+		ArchiveLocations:     types.JsonRaw(nil),
+		Created:              types.NowDateTime(),
+		Updated:              types.NowDateTime(),
+	}
+	return work, nil
+}
+
 // extract DOI from URL
 func DOIFromUrl(str string) (string, error) {
 	u, err := url.Parse(str)
@@ -1060,6 +1839,22 @@ func DOIFromUrl(str string) (string, error) {
 		return "", nil
 	}
 	return strings.TrimLeft(u.Path, "/"), nil
+}
+
+// extract DOI prefix from URL
+func PrefixFromUrl(str string) (string, error) {
+	u, err := url.Parse(str)
+	if err != nil {
+		return "", err
+	}
+	if u.Host == "" {
+		return str, nil
+	}
+	if u.Host != "doi.org" || !strings.HasPrefix(u.Path, "/10.") {
+		return "", nil
+	}
+	path := strings.Split(u.Path, "/")
+	return path[1], nil
 }
 
 func DOIAsUrl(str string) string {
@@ -1116,13 +1911,18 @@ func IssnAsUrl(issn string) string {
 }
 
 // https://stackoverflow.com/questions/66643946/how-to-remove-duplicates-strings-or-int-from-slice-in-go/76948712#76948712
-func RemoveDuplicates[T comparable](s []T) []T {
-	alreadySeen := make(map[T]struct{}, len(s))
-	return slices.DeleteFunc(s, func(val T) bool {
-		_, duplicate := alreadySeen[val]
-		alreadySeen[val] = struct{}{}
-		return duplicate
-	})
+func dedupeSlice[T comparable](sliceList []T) []T {
+	dedupeMap := make(map[T]struct{})
+	list := []T{}
+
+	for _, slice := range sliceList {
+		if _, exists := dedupeMap[slice]; !exists {
+			dedupeMap[slice] = struct{}{}
+			list = append(list, slice)
+		}
+	}
+
+	return list
 }
 
 func NormalizeCCUrl(url string) (string, error) {
@@ -1186,8 +1986,23 @@ func NormalizeCCUrl(url string) (string, error) {
 func UrlToSPDX(url string) string {
 	// appreviated list from https://spdx.org/licenses/
 	SPDXLicenses := map[string]string{
-		"https://creativecommons.org/licenses/by/3.0/legalcode": "CC-BY-3.0",
-		"https://creativecommons.org/licenses/by/4.0/legalcode": "CC-BY-4.0",
+		"https://creativecommons.org/licenses/by/3.0/legalcode":       "CC-BY-3.0",
+		"https://creativecommons.org/licenses/by/4.0/legalcode":       "CC-BY-4.0",
+		"https://creativecommons.org/licenses/by-nc/3.0/legalcode":    "CC-BY-NC-3.0",
+		"https://creativecommons.org/licenses/by-nc/4.0/legalcode":    "CC-BY-NC-4.0",
+		"https://creativecommons.org/licenses/by-nc-nd/3.0/legalcode": "CC-BY-NC-ND-3.0",
+		"https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode": "CC-BY-NC-ND-4.0",
+		"https://creativecommons.org/licenses/by-nc-sa/3.0/legalcode": "CC-BY-NC-SA-3.0",
+		"https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode": "CC-BY-NC-SA-4.0",
+		"https://creativecommons.org/licenses/by-nd/3.0/legalcode":    "CC-BY-ND-3.0",
+		"https://creativecommons.org/licenses/by-nd/4.0/legalcode":    "CC-BY-ND-4.0",
+		"https://creativecommons.org/licenses/by-sa/3.0/legalcode":    "CC-BY-SA-3.0",
+		"https://creativecommons.org/licenses/by-sa/4.0/legalcode":    "CC-BY-SA-4.0",
+		"https://creativecommons.org/publicdomain/zero/1.0/legalcode": "CC0-1.0",
+		"https://creativecommons.org/licenses/publicdomain/":          "CC0-1.0",
+		"https://opensource.org/licenses/MIT":                         "MIT",
+		"https://opensource.org/licenses/Apache-2.0":                  "Apache-2.0",
+		"https://opensource.org/licenses/GPL-3.0":                     "GPL-3.0",
 	}
 	id := SPDXLicenses[url]
 	return id
