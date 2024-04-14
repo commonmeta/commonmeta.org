@@ -44,8 +44,12 @@ type Content struct {
 		Name  string   `json:"name"`
 		Award []string `json:"award"`
 	} `json:"funder"`
-	GUID   string `json:"guid"`
-	Issue  string `json:"issue"`
+	GUID      string `json:"guid"`
+	Issue     string `json:"issue"`
+	Published struct {
+		DateAsParts []DateParts `json:"date-parts"`
+		DateTime    string      `json:"date-time"`
+	} `json:"published"`
 	Issued struct {
 		DateAsParts []DateParts `json:"date-parts"`
 		DateTime    string      `json:"date-time"`
@@ -650,7 +654,6 @@ func main() {
 			switch contentType {
 			case "application/vnd.commonmeta+json", "application/json":
 				// return metadata in Commonmeta format, handle JSON parsing errors
-				log.Printf("Returning metadata for %s in Commonmeta format", work.Pid)
 				_, err := json.Marshal(work)
 				if err != nil {
 					log.Println("error:", err)
@@ -800,20 +803,21 @@ func FindWorksByPids(dao *daos.Dao, pids ...string) ([]*Work, error) {
 
 // find DOI registration agency from works collection
 func FindDoiRegistrationAgency(dao *daos.Dao, doi string) (string, error) {
-	substr := doi[0:24]
+	prefix, err := PrefixFromUrl(doi)
+	if err != nil {
+		return "", err
+	}
 	work := &Work{}
-
-	err := WorkQuery(dao).
+	err = WorkQuery(dao).
 		AndWhere(dbx.NewExp("pid LIKE {:substr}", dbx.Params{
-			"substr": substr + "%",
+			"substr": "https://doi.org/" + prefix + "%",
 		})).
 		Limit(1).
 		One(work)
 
 	if err == sql.ErrNoRows {
 		// if not found in works collection, look up DOI registration agency from handle service
-		ra, err := FindDoiRegistrationAgencyFromHandle(dao, substr)
-		log.Printf("DOI registration agency for %s: %s", doi, ra)
+		ra, err := FindDoiRegistrationAgencyFromHandle(dao, prefix)
 		if err != nil {
 			return "", err
 		}
@@ -826,14 +830,10 @@ func FindDoiRegistrationAgency(dao *daos.Dao, doi string) (string, error) {
 }
 
 // find DOI registration agency for prefix from handle service
-func FindDoiRegistrationAgencyFromHandle(dao *daos.Dao, doi string) (string, error) {
+func FindDoiRegistrationAgencyFromHandle(dao *daos.Dao, prefix string) (string, error) {
 	type Response []struct {
 		DOI string `json:"DOI"`
 		RA  string `json:"RA"`
-	}
-	prefix, err := PrefixFromUrl(doi)
-	if err != nil {
-		return "", err
 	}
 	resp, err := http.Get(fmt.Sprintf("https://doi.org/ra/%s", prefix))
 	if err != nil {
@@ -996,21 +996,26 @@ func ReadCrossref(content Content) (*Work, error) {
 	}
 	var date = func() types.JsonRaw {
 		var d Date
-		if content.Issued.DateTime != "" {
+		if content.Published.DateTime != "" {
+			d.Published = content.Published.DateTime
+		} else if len(content.Published.DateAsParts) > 0 {
+			d.Published = GetDateFromDateParts(content.Published.DateAsParts)
+		} else if content.Issued.DateTime != "" {
 			d.Published = content.Issued.DateTime
-		} else if len(content.Issued.DateAsParts) > 1 {
+		} else if len(content.Issued.DateAsParts) > 0 {
 			d.Published = GetDateFromDateParts(content.Issued.DateAsParts)
 		}
-		if content.Created.DateTime != "" {
-			d.Created = content.Created.DateTime
-		} else if len(content.Created.DateAsParts) > 1 {
-			d.Created = GetDateFromDateParts(content.Created.DateAsParts)
+		if d.Published == "" {
+			if content.Created.DateTime != "" {
+				d.Created = content.Created.DateTime
+			} else if len(content.Created.DateAsParts) > 0 {
+				d.Created = GetDateFromDateParts(content.Created.DateAsParts)
+			}
 		}
 		b, err := json.Marshal(d)
 		if err != nil {
 			return types.JsonRaw("{}")
 		}
-		log.Println(string(b))
 		return types.JsonRaw(b)
 	}
 	var titles = func() types.JsonRaw {
@@ -1878,10 +1883,7 @@ func PrefixFromUrl(str string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if u.Host == "" {
-		return str, nil
-	}
-	if u.Host != "doi.org" || !strings.HasPrefix(u.Path, "/10.") {
+	if u.Host == "" || u.Host != "doi.org" || !strings.HasPrefix(u.Path, "/10.") {
 		return "", nil
 	}
 	path := strings.Split(u.Path, "/")
@@ -1905,20 +1907,21 @@ func SanitizeHTML(html string) (string, error) {
 }
 
 func GetDateFromDateParts(dateAsParts []DateParts) string {
-	switch len(dateAsParts) {
+	dateParts := dateAsParts[0]
+	switch len(dateParts) {
 	case 0:
 		return ""
 	case 1:
-		year := dateAsParts[0][0]
+		year := dateParts[0]
 		if year == 0 {
 			return ""
 		}
 		return GetDateFromParts(year)
 	case 2:
-		year, month := dateAsParts[0][0], dateAsParts[0][1]
+		year, month := dateParts[0], dateParts[1]
 		return GetDateFromParts(year, month)
 	case 3:
-		year, month, day := dateAsParts[0][0], dateAsParts[0][1], dateAsParts[0][2]
+		year, month, day := dateParts[0], dateParts[1], dateParts[2]
 		return GetDateFromParts(year, month, day)
 	}
 	return ""
