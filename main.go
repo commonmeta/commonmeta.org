@@ -1387,7 +1387,10 @@ func ReadDatacite(content Content) (*Work, error) {
 		c := make([]Contributor, 0)
 		for _, v := range content.Attributes.Creators {
 			if v.Name != "" || v.GivenName != "" || v.FamilyName != "" {
-				type_ := v.NameType[:len(v.NameType)-2]
+				var type_ string
+				if len(v.NameType) > 2 {
+					type_ = v.NameType[:len(v.NameType)-2]
+				}
 				var id string
 				if len(v.NameIdentifiers) > 0 {
 					ni := v.NameIdentifiers[0]
