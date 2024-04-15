@@ -47,16 +47,16 @@ type Content struct {
 	GUID      string `json:"guid"`
 	Issue     string `json:"issue"`
 	Published struct {
-		DateAsParts []DateParts `json:"date-parts"`
-		DateTime    string      `json:"date-time"`
+		DateAsParts [][]int `json:"date-parts"`
+		DateTime    string  `json:"date-time"`
 	} `json:"published"`
 	Issued struct {
-		DateAsParts []DateParts `json:"date-parts"`
-		DateTime    string      `json:"date-time"`
+		DateAsParts [][]int `json:"date-parts"`
+		DateTime    string  `json:"date-time"`
 	} `json:"issued"`
 	Created struct {
-		DateAsParts []DateParts `json:"date-parts"`
-		DateTime    string      `json:"date-time"`
+		DateAsParts [][]int `json:"date-parts"`
+		DateTime    string  `json:"date-time"`
 	} `json:"created"`
 	ISSN     []string `json:"ISSN"`
 	ISBNType []struct {
@@ -83,24 +83,75 @@ type Content struct {
 		Unstructured string `json:"unstructured"`
 	} `json:"reference"`
 	Relation struct {
-		IsNewVersionOf      []CrossrefRelation `json:"is-new-version-of"`
-		IsPreviousVersionOf []CrossrefRelation `json:"is-previous-version-of"`
-		IsVersionOf         []CrossrefRelation `json:"is-version-of"`
-		HasVersion          []CrossrefRelation `json:"has-version"`
-		IsPartOf            []CrossrefRelation `json:"is-part-of"`
-		HasPart             []CrossrefRelation `json:"has-part"`
-		IsVariantFormOf     []CrossrefRelation `json:"is-variant-form-of"`
-		IsOriginalFormOf    []CrossrefRelation `json:"is-original-form-of"`
-		IsIdenticalTo       []CrossrefRelation `json:"is-identical-to"`
-		IsTranslationOf     []CrossrefRelation `json:"is-translation-of"`
-		IsReviewedBy        []CrossrefRelation `json:"is-reviewed-by"`
-		Reviews             []CrossrefRelation `json:"reviews"`
-		HasReview           []CrossrefRelation `json:"has-review"`
-		IsPreprintOf        []CrossrefRelation `json:"is-preprint-of"`
-		HasPreprint         []CrossrefRelation `json:"has-preprint"`
-		IsSupplementTo      []CrossrefRelation `json:"is-supplement-to"`
-		IsSupplementedBy    []CrossrefRelation `json:"is-supplemented-by"`
-	}
+		IsNewVersionOf []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"is-new-version-of"`
+		IsPreviousVersionOf []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"is-previous-version-of"`
+		IsVersionOf []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"is-version-of"`
+		HasVersion []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"has-version"`
+		IsPartOf []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"is-part-of"`
+		HasPart []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"has-part"`
+		IsVariantFormOf []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"is-variant-form-of"`
+		IsOriginalFormOf []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"is-original-form-of"`
+		IsIdenticalTo []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"is-identical-to"`
+		IsTranslationOf []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"is-translation-of"`
+		IsReviewedBy []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"is-reviewed-by"`
+		Reviews []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"reviews"`
+		HasReview []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"has-review"`
+		IsPreprintOf []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"is-preprint-of"`
+		HasPreprint []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"has-preprint"`
+		IsSupplementTo []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"is-supplement-to"`
+		IsSupplementedBy []struct {
+			ID     string `json:"id"`
+			IDType string `json:"id-type"`
+		} `json:"is-supplemented-by"`
+	} `json:"relation"`
 	Resource struct {
 		Primary struct {
 			ContentType string `json:"content_type"`
@@ -118,6 +169,7 @@ type Content struct {
 	Volume    string   `json:"volume"`
 }
 
+// used by Datacite API
 type Attributes struct {
 	DOI                  string `json:"doi"`
 	Prefix               string `json:"prefix"`
@@ -272,24 +324,6 @@ type Contributor struct {
 	ContributorRoles []string `json:"contributorRoles"`
 }
 
-type Creator struct {
-	NameType        string `json:"nameType"`
-	Name            string `json:"name"`
-	GivenName       string `json:"givenName"`
-	FamilyName      string `json:"familyName"`
-	NameIdentifiers []struct {
-		SchemeURI            string `json:"schemeUri"`
-		NameIdentifier       string `json:"nameIdentifier"`
-		NameIdentifierScheme string `json:"nameIdentifierScheme"`
-	} `json:"nameIdentifiers"`
-	Affiliation []string `json:"affiliation"`
-}
-
-type CrossrefRelation struct {
-	ID     string `json:"id"`
-	IDType string `json:"id-type"`
-}
-
 type Date struct {
 	Created     string `json:"created,omitempty"`
 	Submitted   string `json:"submitted,omitempty"`
@@ -424,8 +458,6 @@ type Work struct {
 	Created types.DateTime `db:"created" json:"created"`
 	Updated types.DateTime `db:"updated" json:"updated"`
 }
-
-type DateParts []int
 
 func (m *Work) TableName() string {
 	return "works" // the name of your collection
@@ -1126,7 +1158,10 @@ func ReadCrossref(content Content) (*Work, error) {
 			relationTypes := []string{"IsPartOf", "HasPart", "IsVariantFormOf", "IsOriginalFormOf", "IsIdenticalTo", "IsTranslationOf", "IsReviewedBy", "Reviews", "HasReview", "IsPreprintOf", "HasPreprint", "IsSupplementTo", "IsSupplementedBy"}
 			if slices.Contains(relationTypes, field.Name) {
 				relationByType := reflect.ValueOf(content.Relation).FieldByName(field.Name)
-				for _, v := range relationByType.Interface().([]CrossrefRelation) {
+				for _, v := range relationByType.Interface().([]struct {
+					ID     string `json:"id"`
+					IDType string `json:"id-type"`
+				}) {
 					relations = append(relations, Relation{
 						ID:   DOIAsUrl(v.ID),
 						Type: field.Name,
@@ -1906,7 +1941,7 @@ func SanitizeHTML(html string) (string, error) {
 	return str, nil
 }
 
-func GetDateFromDateParts(dateAsParts []DateParts) string {
+func GetDateFromDateParts(dateAsParts [][]int) string {
 	dateParts := dateAsParts[0]
 	switch len(dateParts) {
 	case 0:
