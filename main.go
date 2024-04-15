@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -559,7 +560,7 @@ func main() {
 					log.Printf("%s not found, looking up metadata with Crossref ...", pid)
 					content, err := GetCrossref(pid)
 					if err != nil {
-						return err
+						return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 					}
 					newWork, err := ReadCrossref(content)
 					if err != nil {
@@ -576,7 +577,7 @@ func main() {
 					log.Printf("%s not found, looking up metadata with DataCite ...", pid)
 					content, err := GetDatacite(pid)
 					if err != nil {
-						return err
+						return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 					}
 					newWork, err := ReadDatacite(content)
 					if err != nil {
@@ -916,7 +917,7 @@ func GetCrossref(pid string) (Content, error) {
 		return response.Message, err
 	}
 	if resp.StatusCode >= 400 {
-		return response.Message, fmt.Errorf("status code error: %d %s", resp.StatusCode, resp.Status)
+		return response.Message, errors.New(resp.Status)
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
@@ -1326,7 +1327,7 @@ func GetDatacite(pid string) (Content, error) {
 		return response.Data, err
 	}
 	if resp.StatusCode >= 400 {
-		return response.Data, fmt.Errorf("status code error: %d %s", resp.StatusCode, resp.Status)
+		return response.Data, errors.New(resp.Status)
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
@@ -1916,7 +1917,7 @@ func DOIFromUrl(str string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if u.Host == "" {
+	if u.Host == "" || u.Path == "" {
 		return str, nil
 	}
 	if u.Host != "doi.org" || !strings.HasPrefix(u.Path, "/10.") {
