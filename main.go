@@ -568,7 +568,6 @@ func main() {
 					if err := app.Dao().Save(newWork); err != nil {
 						return err
 					}
-
 					work, err = FindWorkByPid(app.Dao(), newWork.Pid)
 					if err != nil {
 						return err
@@ -586,8 +585,6 @@ func main() {
 					if err := app.Dao().Save(newWork); err != nil {
 						return err
 					}
-					// return c.JSON(http.StatusOK, newWork)
-
 					work, err = FindWorkByPid(app.Dao(), newWork.Pid)
 					if err != nil {
 						return err
@@ -598,7 +595,7 @@ func main() {
 				return c.JSON(http.StatusNotFound, map[string]string{"error": "Not found"})
 			}
 
-			// redirect for content types supported by DOI content negotiation
+			// redirect for content types supported by Crossref or DataCite DOI content negotiation
 			contentTypes := []string{"text/html", "application/vnd.commonmeta+json", "application/json", "text/markdown", "application/vnd.jats+xml", "application/xml", "application/pdf"}
 			if !slices.Contains(contentTypes, contentType) {
 				// look up the DOI registration agency in works table and use link-based content negotiation
