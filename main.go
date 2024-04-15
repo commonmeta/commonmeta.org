@@ -29,13 +29,28 @@ import (
 var _ models.Model = (*Work)(nil)
 
 type Content struct {
-	PID            string     `json:"pid"`
-	Type           string     `json:"type"`
-	Attributes     Attributes `json:"attributes"`
-	Abstract       string     `json:"abstract"`
-	Archive        []string   `json:"archive"`
-	Author         []Author   `json:"author"`
-	Blog           Blog       `json:"blog"`
+	PID        string     `json:"pid"`
+	Type       string     `json:"type"`
+	Attributes Attributes `json:"attributes"`
+	Abstract   string     `json:"abstract"`
+	Archive    []string   `json:"archive"`
+	Author     []struct {
+		Given       string `json:"given"`
+		Family      string `json:"family"`
+		Name        string `json:"name"`
+		ORCID       string `json:"ORCID"`
+		Sequence    string `json:"sequence"`
+		Affiliation []struct {
+			ROR  string `json:"ror"`
+			Name string `json:"name"`
+		} `json:"affiliation"`
+	} `json:"author"`
+	Blog struct {
+		ISSN        string `json:"issn"`
+		License     string `json:"license"`
+		Title       string `json:"title"`
+		HomePageUrl string `json:"home_page_url"`
+	} `json:"blog"`
 	ContainerTitle []string   `json:"container-title"`
 	DOI            string     `json:"doi"`
 	Files          []struct{} `json:"files"`
@@ -281,25 +296,6 @@ type AlternateIdentifier struct {
 	IdentifierType string `json:"identifierType"`
 }
 
-type Author struct {
-	Given       string `json:"given"`
-	Family      string `json:"family"`
-	Name        string `json:"name"`
-	ORCID       string `json:"ORCID"`
-	Sequence    string `json:"sequence"`
-	Affiliation []struct {
-		ROR  string `json:"ror"`
-		Name string `json:"name"`
-	} `json:"affiliation"`
-}
-
-type Blog struct {
-	ISSN        string `json:"issn"`
-	License     string `json:"license"`
-	Title       string `json:"title"`
-	HomePageUrl string `json:"home_page_url"`
-}
-
 type Container struct {
 	Identifier     string `json:"identifier,omitempty"`
 	IdentifierType string `json:"identifierType,omitempty"`
@@ -480,15 +476,6 @@ func main() {
 		Unstructured    string `json:"unstructured,omitempty"`
 	}
 
-	type Relation struct {
-		ID   string `json:"id"`
-		Type string `json:"type"`
-	}
-
-	type Subject struct {
-		Subject string `json:"subject"`
-	}
-
 	// redirect hard-coded legacy urls to docs site
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		e.Router.GET("/", func(c echo.Context) error {
@@ -599,12 +586,12 @@ func main() {
 					if err := app.Dao().Save(newWork); err != nil {
 						return err
 					}
-					return c.JSON(http.StatusOK, newWork)
+					// return c.JSON(http.StatusOK, newWork)
 
-					// work, err = FindWorkByPid(app.Dao(), newWork.Pid)
-					// if err != nil {
-					// 	return err
-					// }
+					work, err = FindWorkByPid(app.Dao(), newWork.Pid)
+					if err != nil {
+						return err
+					}
 				}
 			}
 			if work == nil {
