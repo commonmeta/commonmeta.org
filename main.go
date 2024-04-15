@@ -647,6 +647,16 @@ func main() {
 					// 	return err
 					// }
 				}
+				// TODO: change how we store references in the works collection,
+				// should be a slice of strings instead of a slice of structs,
+				// and uses the pid as the key. This will enable simpler sql queries.
+				// citations, err := FindWorksByCitation(app.Dao(), pid)
+				// if err != nil {
+				// 	return err
+				// }
+				// if len(citations) > 0 {
+				// 	log.Printf("Citations: %+v\n", citations)
+				// }
 			}
 
 			// extract files and look up their metadata
@@ -808,6 +818,21 @@ func FindWorksByPids(dao *daos.Dao, pids ...string) ([]*Work, error) {
 
 	err := WorkQuery(dao).
 		AndWhere(dbx.In("pid", refs...)).
+		All(&works)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return works, nil
+}
+
+// find multiple works by the citations of a pid.
+func FindWorksByCitation(dao *daos.Dao, pid string) ([]*Work, error) {
+	works := []*Work{}
+
+	err := WorkQuery(dao).
+		AndWhere(dbx.In("references.0.doi", pid)).
 		All(&works)
 
 	if err != nil {
@@ -1196,7 +1221,11 @@ func ReadCrossref(content Content) (*Work, error) {
 	}
 	var license = func() types.JsonRaw {
 		if content.License != nil && len(content.License) > 0 {
-			url, _ := NormalizeCCUrl(content.License[0].Url)
+			url, err := NormalizeCCUrl(content.License[0].Url)
+			if err != nil {
+				log.Println(err)
+				return types.JsonRaw("{}")
+			}
 			id := UrlToSPDX(url)
 			if id == "" {
 				log.Printf("License URL %s not found in SPDX", url)
@@ -2076,7 +2105,7 @@ func NormalizeUrl(str string, secure bool, lower bool) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if u.Path[len(u.Path)-1] == '/' {
+	if u.Path != "" && u.Path[len(u.Path)-1] == '/' {
 		u.Path = u.Path[:len(u.Path)-1]
 	}
 	if secure && u.Scheme == "http" {
