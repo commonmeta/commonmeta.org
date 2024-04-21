@@ -197,8 +197,8 @@ Warning
 </div>
 <pre><code>{
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://commonmeta.org/commonmeta_v0.12.json",
-  "title": "Commonmeta v0.12",
+  "$id": "https://commonmeta.org/commonmeta_v0.13.json",
+  "title": "Commonmeta v0.13",
   "description": "JSON representation of the Commonmeta schema.",
   "additionalProperties": false,
   "definitions": {
@@ -207,17 +207,8 @@ Warning
       "items": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uri" },
-          "name": { "type": "string" }
-        },
-        "anyOf": [
-          {
-            "required": ["id"]
-          },
-          {
-            "required": ["name"]
-          }
-        ]
+          "organization": { "$ref": "#/definitions/organization" }
+        }
       },
       "uniqueItems": true
     },
@@ -269,6 +260,19 @@ Warning
       ],
       "type": "string"
     },
+    "geoLocationPoint": {
+      "type": "object",
+      "properties": {
+        "pointLongitude": { "$ref": "#/definitions/longitude" },
+        "pointLatitude": { "$ref": "#/definitions/latitude" }
+      },
+      "required": ["pointLongitude", "pointLatitude"]
+    },
+    "id": {
+      "description": "The unique identifier for the resource.",
+      "type": "string",
+      "format": "uri"
+    },
     "latitude": {
       "type": "number",
       "minimum": -90,
@@ -279,25 +283,41 @@ Warning
       "minimum": -180,
       "maximum": 180
     },
-    "geoLocationPoint": {
+    "organization": {
       "type": "object",
       "properties": {
-        "pointLongitude": { "$ref": "#/definitions/longitude" },
-        "pointLatitude": { "$ref": "#/definitions/latitude" }
+        "id": {
+          "description": "The unique identifier for the organization.",
+          "type": "string",
+          "format": "uri"
+        },
+        "type": { "type": "string", "const": "Organization" },
+        "name": {
+          "description": "The name of the organization.",
+          "type": "string"
+        }
       },
-      "required": ["pointLongitude", "pointLatitude"]
-    }
-  },
-  "type": "object",
-  "properties": {
-    "id": {
-      "description": "The unique identifier for the resource.",
-      "type": "string",
-      "format": "uri",
-      "pattern": "^https?://"
+      "required": ["name", "type"]
+    },
+    "person": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uri" },
+        "type": { "type": "string", "const": "Person" },
+        "givenName": {
+          "description": "The given name of the person.",
+          "type": "string"
+        },
+        "familyName": {
+          "description": "The family name of the person.",
+          "type": "string"
+        },
+        "affiliation": { "$ref": "#/definitions/affiliations" }
+      },
+      "required": ["familyName", "type"]
     },
     "type": {
-      "description": "The type of the resource.",
+      "type": "string",
       "enum": [
         "Article",
         "Audiovisual",
@@ -336,145 +356,31 @@ Warning
         "WebPage",
         "Other"
       ]
-    },
-    "additional_type": {
+    }
+  },
+  "type": "object",
+  "properties": {
+    "id": { "$ref": "#/definitions/id" },
+    "type": { "$ref": "#/definitions/type" },
+    "additionalType": {
       "description": "The additional type of the resource.",
       "type": "string"
     },
-
-    "url": {
-      "description": "The URL of the resource.",
-      "type": "string",
-      "format": "uri"
-    },
-    "contributors": {
-      "description": "The contributors to the resource.",
+    "archiveLocations": {
+      "description": "The location where content is archived.",
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "description": "The unique identifier for the contributor.",
-            "type": "string",
-            "format": "uri"
-          },
-          "type": {
-            "description": "The type of the contributor.",
-            "type": "string",
-            "enum": ["Organization", "Person"]
-          },
-          "contributorRoles": {
-            "description": "List of roles assumed by the contributor when working on the resource.",
-            "items": {
-              "$ref": "#/definitions/contributorRole"
-            },
-            "type": "array",
-            "uniqueItems": true
-          },
-          "name": {
-            "description": "The name of the contributor.",
-            "type": "string"
-          },
-          "givenName": {
-            "description": "The given name of the contributor.",
-            "type": "string"
-          },
-          "familyName": {
-            "description": "The family name of the contributor.",
-            "type": "string"
-          },
-          "affiliation": { "$ref": "#/definitions/affiliations" }
-        },
-        "anyOf": [
-          {
-            "required": ["familyName"]
-          },
-          {
-            "required": ["name"]
-          }
-        ],
-        "required": ["type", "contributorRoles"]
+        "type": "string",
+        "enum": [
+          "CLOCKSS",
+          "LOCKSS",
+          "Portico",
+          "KB",
+          "Internet Archive",
+          "DWT"
+        ]
       },
-      "minItems": 1,
       "uniqueItems": true
-    },
-    "publisher": {
-      "description": "The publisher of the resource.",
-      "type": "object",
-      "properties": {
-        "id": {
-          "description": "The identifier for the publisher.",
-          "type": "string",
-          "format": "uri"
-        },
-        "name": {
-          "description": "The name of the publisher.",
-          "type": "string"
-        }
-      },
-      "required": ["name"]
-    },
-    "date": {
-      "description": "The dates for the resource.",
-      "$comment": "The date fields are not required. Dates should be formatted as ISO 8601 dates.",
-      "type": "object",
-      "properties": {
-        "created": {
-          "description": "The date the resource was created.",
-          "type": "string"
-        },
-        "submitted": {
-          "description": "The date the resource was submitted.",
-          "type": "string"
-        },
-        "accepted": {
-          "description": "The date the resource was accepted.",
-          "type": "string"
-        },
-        "published": {
-          "description": "The date the resource was published.",
-          "type": "string"
-        },
-        "updated": {
-          "description": "The date the resource was updated.",
-          "type": "string"
-        },
-        "accessed": {
-          "description": "The date the resource was accessed.",
-          "type": "string"
-        },
-        "available": {
-          "description": "The date the resource was made available.",
-          "type": "string"
-        },
-        "withdrawn": {
-          "description": "The date the resource was withdrawn.",
-          "type": "string"
-        }
-      }
-    },
-    "titles": {
-      "description": "The titles of the resource.",
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "description": "The title of the resource.",
-            "type": "string"
-          },
-          "type": {
-            "description": "The type of the title.",
-            "type": "string",
-            "enum": ["AlternativeTitle", "Subtitle", "TranslatedTitle"]
-          },
-          "language": {
-            "description": "The language of the title. Use one of the language codes from the IETF BCP 47 standard.",
-            "type": "string"
-          }
-        },
-        "required": ["title"]
-      }
     },
     "container": {
       "description": "The container of the resource.",
@@ -525,133 +431,66 @@ Warning
         }
       }
     },
-    "subjects": {
+    "contributors": {
+      "description": "The contributors to the resource.",
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "subject": { "type": "string" }
-        },
-        "required": ["subject"]
+          "organization": { "$ref": "#/definitions/organization" },
+          "person": { "$ref": "#/definitions/person" },
+          "affiliation": { "$ref": "#/definitions/affiliations" },
+          "contributorRoles": {
+            "description": "List of roles assumed by the contributor when working on the resource.",
+            "items": {
+              "$ref": "#/definitions/contributorRole"
+            },
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        }
       },
+      "minItems": 1,
       "uniqueItems": true
     },
-    "sizes": {
-      "description": "The sizes of the resource.",
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "uniqueItems": true
-    },
-    "formats": {
-      "description": "The formats of the resource.",
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "uniqueItems": true
-    },
-    "language": {
-      "description": "The language of the resource. Use one of the language codes from the IETF BCP 47 standard.",
-      "type": "string"
-    },
-    "license": {
-      "description": "The license for the resource. Use one of the SPDX license identifiers.",
+    "date": {
+      "description": "The dates for the resource.",
+      "$comment": "The date fields are not required. Dates should be formatted as ISO 8601 dates.",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
-        "url": { "type": "string", "format": "uri" }
-      }
-    },
-    "version": {
-      "description": "The version of the resource.",
-      "type": "string"
-    },
-    "references": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "key": { "type": "string" },
-          "doi": { "type": "string" },
-          "contributor": { "type": "string" },
-          "title": { "type": "string" },
-          "publisher": { "type": "string" },
-          "publicationYear": { "type": "string" },
-          "volume": { "type": "string" },
-          "issue": { "type": "string" },
-          "firstPage": { "type": "string" },
-          "lastPage": { "type": "string" },
-          "containerTitle": { "type": "string" },
-          "edition": { "type": "string" },
-          "unstructured": { "type": "string" }
+        "created": {
+          "description": "The date the resource was created.",
+          "type": "string"
         },
-        "required": ["key"]
-      },
-      "uniqueItems": true
-    },
-    "relations": {
-      "description": "Other resolvable persistent unique IDs related to the resource.",
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uri"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "IsNewVersionOf",
-              "IsPreviousVersionOf",
-              "IsVersionOf",
-              "HasVersion",
-              "IsPartOf",
-              "HasPart",
-              "IsVariantFormOf",
-              "IsOriginalFormOf",
-              "IsIdenticalTo",
-              "IsTranslationOf",
-              "HasTranslation",
-              "IsReviewedBy",
-              "Reviews",
-              "HasReview",
-              "IsPreprintOf",
-              "HasPreprint",
-              "IsSupplementTo",
-              "IsSupplementedBy"
-            ]
-          }
+        "submitted": {
+          "description": "The date the resource was submitted.",
+          "type": "string"
         },
-        "required": ["id", "type"]
-      },
-      "uniqueItems": true
-    },
-    "funding_references": {
-      "description": "The funding references for the resource.",
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "funderIdentifier": { "type": "string" },
-          "funderIdentifierType": {
-            "type": "string",
-            "enum": [
-              "Crossref Funder ID",
-              "ROR",
-              "GRID",
-              "ISNI",
-              "Ringgold",
-              "Other"
-            ]
-          },
-          "funderName": { "type": "string" },
-          "awardNumber": { "type": "string" },
-          "award_uri": { "type": "string", "format": "uri" }
+        "accepted": {
+          "description": "The date the resource was accepted.",
+          "type": "string"
         },
-        "required": ["funderName"]
+        "published": {
+          "description": "The date the resource was published.",
+          "type": "string"
+        },
+        "updated": {
+          "description": "The date the resource was updated.",
+          "type": "string"
+        },
+        "accessed": {
+          "description": "The date the resource was accessed.",
+          "type": "string"
+        },
+        "available": {
+          "description": "The date the resource was made available.",
+          "type": "string"
+        },
+        "withdrawn": {
+          "description": "The date the resource was withdrawn.",
+          "type": "string"
+        }
       }
     },
     "descriptions": {
@@ -677,7 +516,50 @@ Warning
         "required": ["description"]
       }
     },
-    "geo_locations": {
+    "files": {
+      "description": "The downloadable files for the resource.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "bucket": { "type": "string" },
+          "key": { "type": "string" },
+          "checksum": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "size": { "type": "integer" },
+          "mimeType": { "type": "string" }
+        },
+        "required": ["url"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "fundingReferences": {
+      "description": "The funding references for the resource.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "funderIdentifier": { "type": "string" },
+          "funderIdentifierType": {
+            "type": "string",
+            "enum": [
+              "Crossref Funder ID",
+              "ROR",
+              "GRID",
+              "ISNI",
+              "Ringgold",
+              "Other"
+            ]
+          },
+          "funderName": { "type": "string" },
+          "awardNumber": { "type": "string" },
+          "awardUri": { "type": "string", "format": "uri" }
+        },
+        "required": ["funderName"]
+      }
+    },
+    "geoLocations": {
       "type": "array",
       "items": {
         "type": "object",
@@ -719,79 +601,179 @@ Warning
       },
       "uniqueItems": true
     },
+    "identifiers": {
+      "description": "Identifiers for the resource, including the id.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "identifier": { "type": "string" },
+          "identifierType": {
+            "type": "string",
+            "enum": [
+              "ARK",
+              "arXiv",
+              "Bibcode",
+              "DOI",
+              "Handle",
+              "ISBN",
+              "ISSN",
+              "PMID",
+              "PMCID",
+              "PURL",
+              "URL",
+              "URN",
+              "UUID",
+              "Other"
+            ]
+          }
+        },
+        "required": ["identifier", "identifierType"]
+      }
+    },
+    "language": {
+      "description": "The language of the resource. Use one of the language codes from the IETF BCP 47 standard.",
+      "type": "string"
+    },
+    "license": {
+      "description": "The license for the resource. Use one of the SPDX license identifiers.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
     "provider": {
       "description": "The provider of the resource. This can be a DOI registration agency or a repository.",
       "type": "string",
-      "enum": [
-        "Crossref",
-        "DataCite",
-        "GitHub",
-        "JaLC",
-        "KISTI",
-        "mEDRA",
-        "OP",
-        "InvenioRDM"
-      ]
+      "enum": ["Crossref", "DataCite", "GitHub", "JaLC", "KISTI", "mEDRA", "OP"]
     },
-    "alternate_identifiers": {
-      "description": "Alternate identifiers for the resource.",
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "alternateIdentifier": { "type": "string" },
-          "alternateIdentifierType": { "type": "string" }
+    "publisher": {
+      "description": "The publisher of the resource.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "The identifier for the publisher.",
+          "type": "string",
+          "format": "uri"
         },
-        "required": ["alternateIdentifier", "alternateIdentifierType"]
-      }
+        "name": {
+          "description": "The name of the publisher.",
+          "type": "string"
+        }
+      },
+      "required": ["name"]
     },
-    "files": {
-      "description": "The downloadable files for the resource.",
+    "relations": {
+      "description": "Other resolvable persistent unique IDs related to the resource.",
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "bucket": { "type": "string" },
+          "id": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "IsNewVersionOf",
+              "IsPreviousVersionOf",
+              "IsVersionOf",
+              "HasVersion",
+              "IsPartOf",
+              "HasPart",
+              "IsVariantFormOf",
+              "IsOriginalFormOf",
+              "IsIdenticalTo",
+              "IsTranslationOf",
+              "HasTranslation",
+              "IsReviewedBy",
+              "Reviews",
+              "HasReview",
+              "IsPreprintOf",
+              "HasPreprint",
+              "IsSupplementTo",
+              "IsSupplementedBy"
+            ]
+          }
+        },
+        "required": ["id", "type"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "$ref": "#/definitions/id" },
+          "type": { "$ref": "#/definitions/type" },
           "key": { "type": "string" },
-          "checksum": { "type": "string" },
-          "url": { "type": "string", "format": "uri" },
-          "size": { "type": "integer" },
-          "mimeType": { "type": "string" }
+          "contributor": { "type": "string" },
+          "title": { "type": "string" },
+          "publisher": { "type": "string" },
+          "publicationYear": { "type": "string" },
+          "volume": { "type": "string" },
+          "issue": { "type": "string" },
+          "firstPage": { "type": "string" },
+          "lastPage": { "type": "string" },
+          "containerTitle": { "type": "string" },
+          "edition": { "type": "string" },
+          "unstructured": { "type": "string" }
         },
-        "required": ["url"]
-      }
-    },
-    "schema_version": {
-      "description": "The schema version of the resource.",
-      "type": "string",
-      "enum": [
-        "https://commonmeta.org/commonmeta_v0.10",
-        "https://commonmeta.org/commonmeta_v0.11",
-        "https://commonmeta.org/commonmeta_v0.12",
-        "http://datacite.org/schema/kernel-3",
-        "http://datacite.org/schema/kernel-4"
-      ]
-    },
-    "state": {
-      "description": "The state of the resource.",
-      "type": "string",
-      "enum": ["findable", "not_found", "forbidden", "bad_request"]
-    },
-    "archive_locations": {
-      "description": "The location where content is archived.",
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": [
-          "CLOCKSS",
-          "LOCKSS",
-          "Portico",
-          "KB",
-          "Internet Archive",
-          "DWT"
-        ]
+        "required": ["key"]
       },
       "uniqueItems": true
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "subject": { "type": "string" },
+          "language": {
+            "description": "The language of the subject. Use one of the language codes from the IETF BCP 47 standard.",
+            "type": "string"
+          }
+        },
+        "required": ["subject"]
+      },
+      "uniqueItems": true
+    },
+    "titles": {
+      "description": "The titles of the resource.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "description": "The title of the resource.",
+            "type": "string"
+          },
+          "type": {
+            "description": "The type of the title.",
+            "type": "string",
+            "enum": ["AlternativeTitle", "Subtitle", "TranslatedTitle"]
+          },
+          "language": {
+            "description": "The language of the title. Use one of the language codes from the IETF BCP 47 standard.",
+            "type": "string"
+          }
+        },
+        "required": ["title"]
+      },
+      "uniqueItems": true
+    },
+    "url": {
+      "description": "The URL of the resource.",
+      "type": "string",
+      "format": "uri"
+    },
+    "version": {
+      "description": "The version of the resource.",
+      "type": "string"
     }
   },
   "required": ["id", "type"]
@@ -1349,7 +1331,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     </a>
   </li>  
     <li class="nav-item compact">
-    <a class="nav-link" href="https://mozilla.social/@martin">
+    <a class="nav-link" href="https://indieweb.social/@commonmeta">
       <i class="bi bi-mastodon" role="img">
 </i> 
     </a>
