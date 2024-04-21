@@ -651,17 +651,8 @@ Warning
       "description": "The publisher of the resource.",
       "type": "object",
       "properties": {
-        "id": {
-          "description": "The identifier for the publisher.",
-          "type": "string",
-          "format": "uri"
-        },
-        "name": {
-          "description": "The name of the publisher.",
-          "type": "string"
-        }
-      },
-      "required": ["name"]
+        "organization": { "$ref": "#/definitions/organization" }
+      }
     },
     "relations": {
       "description": "Other resolvable persistent unique IDs related to the resource.",
