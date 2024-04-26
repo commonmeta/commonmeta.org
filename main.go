@@ -74,11 +74,11 @@ func main() {
 	}
 
 	type Reference struct {
-		Doi             string `json:"doi,omitempty"`
-		Url             string `json:"url,omitempty"`
 		Key             string `json:"key"`
-		PublicationYear string `json:"publicationYear,omitempty"`
+		ID              string `json:"id,omitempty"`
+		Type            string `json:"type,omitempty"`
 		Title           string `json:"title,omitempty"`
+		PublicationYear string `json:"publicationYear,omitempty"`
 		Unstructured    string `json:"unstructured,omitempty"`
 	}
 
@@ -230,10 +230,8 @@ func main() {
 				// generate a list of pid strings
 				refs := make([]string, 0)
 				for _, v := range r {
-					if v.Doi != "" {
-						refs = append(refs, v.Doi)
-					} else if v.Url != "" {
-						refs = append(refs, v.Url)
+					if v.ID != "" {
+						refs = append(refs, v.ID)
 					}
 				}
 				references, err := FindWorksByPids(app.Dao(), refs...)
@@ -481,7 +479,7 @@ func FindWorksByCitation(dao *daos.Dao, pid string) ([]*Work, error) {
 	works := []*Work{}
 
 	err := WorkQuery(dao).
-		AndWhere(dbx.In("references.0.doi", pid)).
+		AndWhere(dbx.In("references.0.id", pid)).
 		All(&works)
 
 	if err != nil {
@@ -507,9 +505,11 @@ func FindDoiRegistrationAgency(dao *daos.Dao, doi string) (string, error) {
 
 	if err == sql.ErrNoRows {
 		// if not found in works collection, look up DOI registration agency from doi.org service
+
 		ra, ok := doiutils.GetDOIRA(prefix)
+		log.Printf("RA: %s %v \n", ra, ok)
 		if !ok {
-			return "", fmt.Errorf("registration agency not found")
+			return "", nil
 		}
 		return ra, nil
 	} else if err != nil {
