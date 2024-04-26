@@ -21,8 +21,7 @@ The JSON Schema is under active development and not considered stable until vers
         "properties": {
           "organization": { "$ref": "#/definitions/organization" }
         }
-      },
-      "uniqueItems": true
+      }
     },
     "contributorRole": {
       "description": "The type of contribution made by a contributor",
@@ -72,13 +71,21 @@ The JSON Schema is under active development and not considered stable until vers
       ],
       "type": "string"
     },
+    "geoLocationBox": {
+      "type": "object",
+      "properties": {
+        "westBoundLongitude": { "$ref": "#/definitions/longitude" },
+        "eastBoundLongitude": { "$ref": "#/definitions/longitude" },
+        "southBoundLatitude": { "$ref": "#/definitions/latitude" },
+        "northBoundLatitude": { "$ref": "#/definitions/latitude" }
+      }
+    },
     "geoLocationPoint": {
       "type": "object",
       "properties": {
         "pointLongitude": { "$ref": "#/definitions/longitude" },
         "pointLatitude": { "$ref": "#/definitions/latitude" }
-      },
-      "required": ["pointLongitude", "pointLatitude"]
+      }
     },
     "id": {
       "description": "The unique identifier for the resource.",
@@ -146,9 +153,11 @@ The JSON Schema is under active development and not considered stable until vers
         "Dissertation",
         "Document",
         "Entry",
+        "Event",
         "Grant",
         "Image",
         "Instrument",
+        "InteractiveResource",
         "JournalArticle",
         "JournalIssue",
         "JournalVolume",
@@ -191,8 +200,7 @@ The JSON Schema is under active development and not considered stable until vers
           "Internet Archive",
           "DWT"
         ]
-      },
-      "uniqueItems": true
+      }
     },
     "container": {
       "description": "The container of the resource.",
@@ -256,14 +264,11 @@ The JSON Schema is under active development and not considered stable until vers
             "items": {
               "$ref": "#/definitions/contributorRole"
             },
-            "type": "array",
-            "minItems": 1,
-            "uniqueItems": true
+            "type": "array"
           }
         }
       },
-      "minItems": 1,
-      "uniqueItems": true
+      "minItems": 1
     },
     "date": {
       "description": "The dates for the resource.",
@@ -342,8 +347,7 @@ The JSON Schema is under active development and not considered stable until vers
         },
         "required": ["url"]
       },
-      "minItems": 1,
-      "uniqueItems": true
+      "minItems": 1
     },
     "fundingReferences": {
       "description": "The funding references for the resource.",
@@ -377,21 +381,7 @@ The JSON Schema is under active development and not considered stable until vers
         "properties": {
           "geoLocationPlace": { "type": "string" },
           "geoLocationPoint": { "$ref": "#/definitions/geoLocationPoint" },
-          "geoLocationBox": {
-            "type": "object",
-            "properties": {
-              "westBoundLongitude": { "$ref": "#/definitions/longitude" },
-              "eastBoundLongitude": { "$ref": "#/definitions/longitude" },
-              "southBoundLatitude": { "$ref": "#/definitions/latitude" },
-              "northBoundLatitude": { "$ref": "#/definitions/latitude" }
-            },
-            "required": [
-              "westBoundLongitude",
-              "eastBoundLongitude",
-              "southBoundLatitude",
-              "northBoundLatitude"
-            ]
-          },
+          "geoLocationBox": { "$ref": "#/definitions/geoLocationBox" },
           "geoLocationPolygons": {
             "type": "array",
             "items": {
@@ -502,8 +492,7 @@ The JSON Schema is under active development and not considered stable until vers
         },
         "required": ["id", "type"]
       },
-      "minItems": 1,
-      "uniqueItems": true
+      "minItems": 1
     },
     "references": {
       "type": "array",
@@ -526,8 +515,7 @@ The JSON Schema is under active development and not considered stable until vers
           "unstructured": { "type": "string" }
         },
         "required": ["key"]
-      },
-      "uniqueItems": true
+      }
     },
     "subjects": {
       "type": "array",
@@ -541,8 +529,7 @@ The JSON Schema is under active development and not considered stable until vers
           }
         },
         "required": ["subject"]
-      },
-      "uniqueItems": true
+      }
     },
     "titles": {
       "description": "The titles of the resource.",
@@ -565,8 +552,7 @@ The JSON Schema is under active development and not considered stable until vers
           }
         },
         "required": ["title"]
-      },
-      "uniqueItems": true
+      }
     },
     "url": {
       "description": "The URL of the resource.",
