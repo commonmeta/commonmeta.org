@@ -115,7 +115,7 @@ func main() {
 			if str == "" {
 				return c.NoContent(http.StatusNotFound)
 			}
-			isDoi, err := regexp.MatchString(`^10\.\d{4,9}/.+$`, str)
+			isDoi, err := regexp.MatchString(`10\.\d{4,9}/.+`, str)
 			if err != nil {
 				return err
 			}
@@ -136,10 +136,17 @@ func main() {
 			contentType := ""
 			path := strings.Split(u.Path, "/")
 			if len(path) > 3 && path[len(path)-3] == "transform" {
+				// Crossref link-based content type requests
 				u.Path = strings.Join(path[:len(path)-3], "/")
 				pid = u.String()
 				str = u.Path[1:]
 				contentType = strings.Join(path[len(path)-2:], "/")
+			} else if len(path) > 3 && (path[1] == "application" || path[1] == "text") {
+				// DataCite link-based content type requests
+				u.Path = strings.Join(path[3:], "/")
+				pid = u.String()
+				str = u.Path[1:]
+				contentType = strings.Join(path[1:3], "/")
 			}
 
 			// alternatively extract the content type from the Accept header
