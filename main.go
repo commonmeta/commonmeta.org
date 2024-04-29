@@ -13,6 +13,7 @@ import (
 
 	"github.com/front-matter/commonmeta/commonmeta"
 	"github.com/front-matter/commonmeta/crossref"
+	"github.com/front-matter/commonmeta/csl"
 	"github.com/front-matter/commonmeta/datacite"
 	"github.com/front-matter/commonmeta/doiutils"
 	"github.com/labstack/echo/v5"
@@ -198,7 +199,7 @@ func main() {
 			}
 
 			// redirect for content types supported by Crossref or DataCite DOI content negotiation
-			contentTypes := []string{"text/html", "application/vnd.commonmeta+json", "application/json", "text/markdown", "application/vnd.jats+xml", "application/xml", "application/pdf"}
+			contentTypes := []string{"text/html", "application/vnd.commonmeta+json", "application/json", "application/vnd.datacite.datacite+json", "application/vnd.citationstyles.csl+json", "text/markdown", "application/vnd.jats+xml", "application/xml", "application/pdf"}
 			if !slices.Contains(contentTypes, contentType) {
 				// look up the DOI registration agency in works table and use link-based content negotiation
 				ra, err := FindDoiRegistrationAgency(app.Dao(), pid)
@@ -277,17 +278,31 @@ func main() {
 				jatsUrl = files["application/vnd.jats+xml"]
 			}
 
+			var data commonmeta.Data
+			if slices.Contains([]string{"application/vnd.commonmeta+json", "application/json", "application/vnd.datacite.datacite+json", "application/vnd.citationstyles.csl+json"}, contentType) {
+				data, err = WriteWorkToCommonmeta(work)
+				if err != nil {
+					log.Println("error:", err)
+				}
+			}
 			switch contentType {
 			case "application/vnd.commonmeta+json", "application/json":
 				// return metadata in Commonmeta format
-				return c.JSON(http.StatusOK, work)
-			// case "application/vnd.datacite.datacite+json", "application/vnd.citationstyles.csl+json":
-			// 	// return metadata in other supported formats
-			// 	data, err := WriteWorkToCommonmeta(work)
-			// 	if err != nil {
-			// 		log.Println("error:", err)
-			// 	}
-			// 	return c.JSON(http.StatusOK, data)
+				return c.JSON(http.StatusOK, data)
+			case "application/vnd.datacite.datacite+json":
+				// return metadata in Datacite format
+				out, err := datacite.Convert(data)
+				if err != nil {
+					log.Println("error:", err)
+				}
+				return c.JSON(http.StatusOK, out)
+			case "application/vnd.citationstyles.csl+json":
+				// return metadata in CSL format
+				out, err := csl.Convert(data)
+				if err != nil {
+					log.Println("error:", err)
+				}
+				return c.JSON(http.StatusOK, out)
 			case "text/markdown":
 				// redirect to markdown version of the resource if available
 				if markdownUrl == "" {
@@ -354,30 +369,33 @@ func GetWorkFromCommonmeta(data commonmeta.Data) *Work {
 // WriteWorkToCommonmeta returns a commonmeta.Data struct from a Work struct
 func WriteWorkToCommonmeta(w *Work) (commonmeta.Data, error) {
 	var data commonmeta.Data
+	var err error
 
 	data.ID = w.Pid
 	data.Type = w.Type
 	data.AdditionalType = w.AdditionalType
 	data.ArchiveLocations = []string{}
-	data.Container = commonmeta.Container{}
-	data.Contributors = []commonmeta.Contributor{}
-	data.Date = commonmeta.Date{}
-	data.Descriptions = []commonmeta.Description{}
-	data.Files = []commonmeta.File{}
-	data.FundingReferences = []commonmeta.FundingReference{}
-	data.GeoLocations = []commonmeta.GeoLocation{}
-	data.Identifiers = []commonmeta.Identifier{}
+	err = json.Unmarshal(w.Container, &data.Container)
+	err = json.Unmarshal(w.Contributors, &data.Contributors)
+	err = json.Unmarshal(w.Date, &data.Date)
+	err = json.Unmarshal(w.Descriptions, &data.Descriptions)
+	err = json.Unmarshal(w.Files, &data.Files)
+	err = json.Unmarshal(w.FundingReferences, &data.FundingReferences)
+	err = json.Unmarshal(w.GeoLocations, &data.GeoLocations)
+	err = json.Unmarshal(w.Identifiers, &data.Identifiers)
 	data.Language = w.Language
-	data.License = commonmeta.License{}
+	err = json.Unmarshal(w.License, &data.License)
 	data.Provider = w.Provider
-	data.Publisher = commonmeta.Publisher{}
-	data.References = []commonmeta.Reference{}
-	data.Relations = []commonmeta.Relation{}
-	data.Subjects = []commonmeta.Subject{}
-	data.Titles = []commonmeta.Title{}
+	err = json.Unmarshal(w.Publisher, &data.Publisher)
+	err = json.Unmarshal(w.References, &data.References)
+	err = json.Unmarshal(w.Relations, &data.Relations)
+	err = json.Unmarshal(w.Subjects, &data.Subjects)
+	err = json.Unmarshal(w.Titles, &data.Titles)
 	data.URL = w.Url
 	data.Version = w.Version
-
+	if err != nil {
+		return data, err
+	}
 	return data, nil
 }
 
