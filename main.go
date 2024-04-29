@@ -279,14 +279,15 @@ func main() {
 
 			switch contentType {
 			case "application/vnd.commonmeta+json", "application/json":
-				// return metadata in Commonmeta format, handle JSON parsing errors
-				_, err := json.Marshal(work)
-				if err != nil {
-					log.Println("error:", err)
-					message := fmt.Sprintf("%+v\n", work)
-					return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error marshalling JSON", "message": message})
-				}
+				// return metadata in Commonmeta format
 				return c.JSON(http.StatusOK, work)
+			// case "application/vnd.datacite.datacite+json", "application/vnd.citationstyles.csl+json":
+			// 	// return metadata in other supported formats
+			// 	data, err := WriteWorkToCommonmeta(work)
+			// 	if err != nil {
+			// 		log.Println("error:", err)
+			// 	}
+			// 	return c.JSON(http.StatusOK, data)
 			case "text/markdown":
 				// redirect to markdown version of the resource if available
 				if markdownUrl == "" {
@@ -350,6 +351,36 @@ func GetWorkFromCommonmeta(data commonmeta.Data) *Work {
 	return work
 }
 
+// WriteWorkToCommonmeta returns a commonmeta.Data struct from a Work struct
+func WriteWorkToCommonmeta(w *Work) (commonmeta.Data, error) {
+	var data commonmeta.Data
+
+	data.ID = w.Pid
+	data.Type = w.Type
+	data.AdditionalType = w.AdditionalType
+	data.ArchiveLocations = []string{}
+	data.Container = commonmeta.Container{}
+	data.Contributors = []commonmeta.Contributor{}
+	data.Date = commonmeta.Date{}
+	data.Descriptions = []commonmeta.Description{}
+	data.Files = []commonmeta.File{}
+	data.FundingReferences = []commonmeta.FundingReference{}
+	data.GeoLocations = []commonmeta.GeoLocation{}
+	data.Identifiers = []commonmeta.Identifier{}
+	data.Language = w.Language
+	data.License = commonmeta.License{}
+	data.Provider = w.Provider
+	data.Publisher = commonmeta.Publisher{}
+	data.References = []commonmeta.Reference{}
+	data.Relations = []commonmeta.Relation{}
+	data.Subjects = []commonmeta.Subject{}
+	data.Titles = []commonmeta.Title{}
+	data.URL = w.Url
+	data.Version = w.Version
+
+	return data, nil
+}
+
 func marshalSlice(data interface{}) types.JsonRaw {
 	b, err := json.Marshal(data)
 	if err != nil {
@@ -366,6 +397,16 @@ func marshalStruct(data interface{}) types.JsonRaw {
 		return types.JsonRaw("{}")
 	}
 	return types.JsonRaw(b)
+}
+
+func unmarshal(data types.JsonRaw) interface{} {
+	var v interface{}
+	err := json.Unmarshal(data, &v)
+	if err != nil {
+		log.Println("error:", err)
+		return nil
+	}
+	return v
 }
 
 func WorkQuery(dao *daos.Dao) *dbx.SelectQuery {
@@ -390,66 +431,6 @@ func FindWorkByPid(dao *daos.Dao, pid string) (*Work, error) {
 		return nil, err
 	}
 
-	return work, nil
-}
-
-// create work by pid, currently only supports DOIs
-func CreateWorkByPid(dao *daos.Dao, pid string) (*Work, error) {
-	u, err := url.Parse(pid)
-	if err != nil {
-		return nil, err
-	}
-	isDoi := u.Host == "doi.org"
-	if !isDoi {
-		return nil, fmt.Errorf("Only DOIs are supported")
-	}
-
-	// disable http redirects
-	client := http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
-	resp, err := client.Head(pid)
-	if err != nil {
-		return nil, err
-	}
-	url := resp.Header.Get("Location")
-	provider, err := FindDoiRegistrationAgency(dao, pid)
-	if err != nil {
-		return nil, err
-	}
-	// create minimal record in the works collection
-	work := &Work{
-		Pid:               pid,
-		Type:              "",
-		AdditionalType:    "",
-		Container:         types.JsonRaw("{}"),
-		Contributors:      types.JsonRaw("[]"),
-		Publisher:         types.JsonRaw("{}"),
-		Date:              types.JsonRaw("{}"),
-		Subjects:          types.JsonRaw("[]"),
-		Language:          "",
-		License:           types.JsonRaw("{}"),
-		Version:           "",
-		References:        types.JsonRaw("[]"),
-		Relations:         types.JsonRaw("[]"),
-		FundingReferences: types.JsonRaw("[]"),
-		Descriptions:      types.JsonRaw("[]"),
-		GeoLocations:      types.JsonRaw("[]"),
-		Provider:          provider,
-		Identifiers:       types.JsonRaw("[]"),
-		Files:             types.JsonRaw("[]"),
-		ArchiveLocations:  types.JsonRaw("[]"),
-		Titles:            types.JsonRaw("[]"),
-		Url:               url,
-		Created:           types.NowDateTime(),
-		Updated:           types.NowDateTime(),
-	}
-
-	if err := dao.Save(work); err != nil {
-		return nil, err
-	}
 	return work, nil
 }
 
