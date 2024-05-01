@@ -16,6 +16,7 @@ import (
 	"github.com/front-matter/commonmeta/csl"
 	"github.com/front-matter/commonmeta/datacite"
 	"github.com/front-matter/commonmeta/doiutils"
+	"github.com/front-matter/commonmeta/schemaorg"
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
@@ -206,7 +207,7 @@ func main() {
 			}
 
 			// redirect for content types supported by Crossref or DataCite DOI content negotiation
-			contentTypes := []string{"text/html", "application/vnd.commonmeta+json", "application/json", "application/vnd.datacite.datacite+json", "application/vnd.citationstyles.csl+json", "text/markdown", "application/vnd.jats+xml", "application/xml", "application/pdf"}
+			contentTypes := []string{"text/html", "application/vnd.commonmeta+json", "application/json", "application/vnd.datacite.datacite+json", "application/vnd.citationstyles.csl+json", "application/vnd.schemaorg.ld+json", "text/markdown", "application/vnd.jats+xml", "application/xml", "application/pdf"}
 			if !slices.Contains(contentTypes, contentType) {
 				// look up the DOI registration agency in works table and use link-based content negotiation
 				ra, err := FindDoiRegistrationAgency(app.Dao(), pid)
@@ -286,7 +287,7 @@ func main() {
 			}
 
 			var data commonmeta.Data
-			if slices.Contains([]string{"application/vnd.commonmeta+json", "application/json", "application/vnd.datacite.datacite+json", "application/vnd.citationstyles.csl+json"}, contentType) {
+			if slices.Contains([]string{"application/vnd.commonmeta+json", "application/json", "application/vnd.datacite.datacite+json", "application/vnd.citationstyles.csl+json", "application/vnd.schemaorg.ld+json"}, contentType) {
 				data, err = WriteWorkToCommonmeta(work)
 				if err != nil {
 					log.Println("error:", err)
@@ -306,6 +307,13 @@ func main() {
 			case "application/vnd.citationstyles.csl+json":
 				// return metadata in CSL format
 				out, err := csl.Convert(data)
+				if err != nil {
+					log.Println("error:", err)
+				}
+				return c.JSON(http.StatusOK, out)
+			case "application/vnd.schemaorg.ld+json":
+				// return metadata in SchemaOrg format
+				out, err := schemaorg.Convert(data)
 				if err != nil {
 					log.Println("error:", err)
 				}
