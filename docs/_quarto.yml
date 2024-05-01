@@ -1,6 +1,8 @@
 project:
   type: website
   output-dir: _site
+  resources:
+    - "commonmeta_v0.14.json"
   preview:
     port: 4400
 execute:
