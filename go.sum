@@ -90,6 +90,8 @@ github.com/front-matter/commonmeta v0.2.5 h1:Y50vu+qahqoM95yWOZadXa9YJysFOgzcvhj
 github.com/front-matter/commonmeta v0.2.5/go.mod h1:zH9fV3unTAgis60z9d5CgZsGL+h18RDaXFcY1VPJKeA=
 github.com/front-matter/commonmeta v0.2.6 h1:KmmUFu8i1qD0Vu/1qX6Al43/gBUnU+CDmXTeEBobWnQ=
 github.com/front-matter/commonmeta v0.2.6/go.mod h1:zH9fV3unTAgis60z9d5CgZsGL+h18RDaXFcY1VPJKeA=
+github.com/front-matter/commonmeta v0.2.7 h1:8IadYihepegU7Wk/JKnp5bVp4dxogQfrGDkV6IN9JMA=
+github.com/front-matter/commonmeta v0.2.7/go.mod h1:zH9fV3unTAgis60z9d5CgZsGL+h18RDaXFcY1VPJKeA=
 github.com/gabriel-vasile/mimetype v1.4.3 h1:in2uUcidCuFcDKtdcBxlR0rJ1+fsokWf+uqxgUFjbI0=
 github.com/gabriel-vasile/mimetype v1.4.3/go.mod h1:d8uq/6HKRL6CGdk+aubisF/M5GcPfT7nKyLpA0lbSSk=
 github.com/ganigeorgiev/fexpr v0.4.0 h1:ojitI+VMNZX/odeNL1x3RzTTE8qAIVvnSSYPNAnQFDI=
