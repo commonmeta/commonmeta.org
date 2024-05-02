@@ -300,7 +300,7 @@ func main() {
 			switch contentType {
 			case "application/vnd.commonmeta+json", "application/json":
 				// return metadata in Commonmeta format
-				return c.JSON(http.StatusOK, data)
+				return c.JSON(http.StatusOK, work)
 			case "application/vnd.datacite.datacite+json":
 				// return metadata in Datacite format
 				out, err := datacite.Convert(data)
