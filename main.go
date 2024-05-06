@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/front-matter/commonmeta/commonmeta"
-	"github.com/front-matter/commonmeta/crossref"
+	"github.com/front-matter/commonmeta/crossrefxml"
 	"github.com/front-matter/commonmeta/csl"
 	"github.com/front-matter/commonmeta/datacite"
 	"github.com/front-matter/commonmeta/doiutils"
@@ -176,7 +176,7 @@ func main() {
 				}
 				if isDoi && ra == "Crossref" {
 					log.Printf("%s not found, looking up metadata with Crossref ...", pid)
-					data, err := crossref.Fetch(pid)
+					data, err := crossrefxml.Fetch(pid)
 
 					if err != nil {
 						return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
