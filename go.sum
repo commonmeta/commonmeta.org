@@ -86,10 +86,8 @@ github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
-github.com/front-matter/commonmeta v0.2.9 h1:KeP9H6UTIwQNFhcFn/plxsyky0f8J5J6b1y+GmtCq6c=
-github.com/front-matter/commonmeta v0.2.9/go.mod h1:zH9fV3unTAgis60z9d5CgZsGL+h18RDaXFcY1VPJKeA=
-github.com/front-matter/commonmeta v0.2.10 h1:Fps48zGMKBtyMmaITutByqw5Wwh0csjtw3AfWezmdNc=
-github.com/front-matter/commonmeta v0.2.10/go.mod h1:zH9fV3unTAgis60z9d5CgZsGL+h18RDaXFcY1VPJKeA=
+github.com/front-matter/commonmeta v0.2.12 h1:E/Hy8M9+Ea/NBxLnqNysy6rIKqlOiNXzaIMOOyULBdE=
+github.com/front-matter/commonmeta v0.2.12/go.mod h1:zH9fV3unTAgis60z9d5CgZsGL+h18RDaXFcY1VPJKeA=
 github.com/gabriel-vasile/mimetype v1.4.3 h1:in2uUcidCuFcDKtdcBxlR0rJ1+fsokWf+uqxgUFjbI0=
 github.com/gabriel-vasile/mimetype v1.4.3/go.mod h1:d8uq/6HKRL6CGdk+aubisF/M5GcPfT7nKyLpA0lbSSk=
 github.com/ganigeorgiev/fexpr v0.4.0 h1:ojitI+VMNZX/odeNL1x3RzTTE8qAIVvnSSYPNAnQFDI=
