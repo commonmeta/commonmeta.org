@@ -211,7 +211,7 @@ func main() {
 			}
 
 			// redirect for content types supported by Crossref or DataCite DOI content negotiation
-			contentTypes := []string{"text/html", "application/vnd.commonmeta+json", "application/json", "application/vnd.datacite.datacite+json", "application/vnd.citationstyles.csl+json", "application/vnd.schemaorg.ld+json", "text/markdown", "application/vnd.jats+xml", "application/xml", "application/pdf"}
+			contentTypes := []string{"text/html", "application/vnd.commonmeta+json", "application/json", "application/vnd.datacite.datacite+json", "application/vnd.citationstyles.csl+json", "application/vnd.crossref.unixsd+xml", "application/vnd.schemaorg.ld+json", "text/markdown", "application/vnd.jats+xml", "application/xml", "application/pdf"}
 			if !slices.Contains(contentTypes, contentType) {
 				// look up the DOI registration agency in works table and use link-based content negotiation
 				ra, err := FindDoiRegistrationAgency(app.Dao(), pid)
@@ -291,7 +291,7 @@ func main() {
 			}
 
 			var data commonmeta.Data
-			if slices.Contains([]string{"application/vnd.commonmeta+json", "application/json", "application/vnd.datacite.datacite+json", "application/vnd.citationstyles.csl+json", "application/vnd.schemaorg.ld+json"}, contentType) {
+			if slices.Contains([]string{"application/vnd.commonmeta+json", "application/json", "application/vnd.datacite.datacite+json", "application/vnd.citationstyles.csl+json", "application/vnd.schemaorg.ld+json", "application/vnd.crossref.unixsd+xml"}, contentType) {
 				data, err = WriteWorkToCommonmeta(work)
 				if err != nil {
 					log.Println("error:", err)
@@ -301,6 +301,13 @@ func main() {
 			case "application/vnd.commonmeta+json", "application/json":
 				// return metadata in Commonmeta format
 				return c.JSON(http.StatusOK, work)
+			case "application/vnd.crossref.unixsd+xml":
+				// return metadata in Crossref UNIXREF xml format
+				out, err := crossrefxml.Convert(data)
+				if err != nil {
+					log.Println("error:", err)
+				}
+				return c.XML(http.StatusOK, out)
 			case "application/vnd.datacite.datacite+json":
 				// return metadata in Datacite format
 				out, err := datacite.Convert(data)
