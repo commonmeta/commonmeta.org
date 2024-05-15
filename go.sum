@@ -89,8 +89,8 @@ github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
-github.com/front-matter/commonmeta v0.3.13 h1:MpUpOPVO8FVpxTHY53Kk3P8KEDwHZobT7X5LqDM1GNw=
-github.com/front-matter/commonmeta v0.3.13/go.mod h1:SbPsjN0QkOiRRj9adSJMp/6xuZ/SM2CS1m61nLn64JU=
+github.com/front-matter/commonmeta v0.3.14 h1:PjVmSJ2ScDYB2XF5ZqenQvALqMd1f10EALKUfAzzcOo=
+github.com/front-matter/commonmeta v0.3.14/go.mod h1:SbPsjN0QkOiRRj9adSJMp/6xuZ/SM2CS1m61nLn64JU=
 github.com/gabriel-vasile/mimetype v1.4.3 h1:in2uUcidCuFcDKtdcBxlR0rJ1+fsokWf+uqxgUFjbI0=
 github.com/gabriel-vasile/mimetype v1.4.3/go.mod h1:d8uq/6HKRL6CGdk+aubisF/M5GcPfT7nKyLpA0lbSSk=
 github.com/ganigeorgiev/fexpr v0.4.0 h1:ojitI+VMNZX/odeNL1x3RzTTE8qAIVvnSSYPNAnQFDI=
