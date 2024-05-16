@@ -75,8 +75,8 @@ commonmeta is a Go module to implement Commonmeta. Use commonmeta to convert sch
 | [Schema.org (in JSON-LD)](http://schema.org/)                                                    | schemaorg    | application/vnd.schemaorg.ld+json      | later     | yes   |
 | [RDF XML](http://www.w3.org/TR/rdf-syntax-grammar/)                                              | rdf       | application/rdf+xml                    | no      | later   |
 | [RDF Turtle](http://www.w3.org/TeamSubmission/turtle/)                                           | turtle        | text/turtle                            | no      | later   |
-| [CSL-JSON](https://citationstyles.org/)                                                     | csl      | application/vnd.citationstyles.csl+json | later | later   |
-| [Formatted text citation](https://citationstyles.org/)                                           | citation      | text/x-bibliography                    | n/a     | yes     |
+| [CSL-JSON](https://citationstyles.org/)                                                     | csl      | application/vnd.citationstyles.csl+json | later | yes   |
+| [Formatted text citation](https://citationstyles.org/)                                           | citation      | text/x-bibliography                    | n/a     | later     |
 | [Codemeta](https://codemeta.github.io/)                                                          | codemeta      | application/vnd.codemeta.ld+json       | later | later |
 | [Citation File Format (CFF)](https://citation-file-format.github.io/)                            | cff           | application/vnd.cff+yaml               | later | later |
 | [JATS](https://jats.nlm.nih.gov/)                                                                | jats          | application/vnd.jats+xml               | later   | later   |
