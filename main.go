@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/front-matter/commonmeta/commonmeta"
+	"github.com/front-matter/commonmeta/crossref"
 	"github.com/front-matter/commonmeta/crossrefxml"
 	"github.com/front-matter/commonmeta/csl"
 	"github.com/front-matter/commonmeta/datacite"
@@ -143,13 +144,13 @@ func main() {
 			if len(path) > 3 && path[len(path)-3] == "transform" {
 				// Crossref link-based content type requests
 				u.Path = strings.Join(path[:len(path)-3], "/")
-				pid = u.String()
+				pid, _ = url.QueryUnescape(u.String())
 				str = u.Path[1:]
 				contentType = strings.Join(path[len(path)-2:], "/")
 			} else if len(path) > 3 && (path[1] == "application" || path[1] == "text") {
 				// DataCite link-based content type requests
 				u.Path = strings.Join(path[3:], "/")
-				pid = u.String()
+				pid, _ = url.QueryUnescape(u.String())
 				str = u.Path[1:]
 				contentType = strings.Join(path[1:3], "/")
 			}
@@ -162,7 +163,6 @@ func main() {
 			if contentType == "" || contentType == "*/*" {
 				contentType = "text/html"
 			}
-
 			work, err := FindWorkByPid(app.Dao(), pid)
 			if err != nil {
 				return err
@@ -176,7 +176,7 @@ func main() {
 				}
 				if isDoi && ra == "Crossref" {
 					log.Printf("%s not found, looking up metadata with Crossref ...", pid)
-					data, err := crossrefxml.Fetch(pid)
+					data, err := crossref.Fetch(pid)
 
 					if err != nil {
 						return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -234,43 +234,43 @@ func main() {
 			}
 
 			// extract pids of references and look up their metadata
-			var r []Reference
-			err = json.Unmarshal(work.References, &r)
-			if err != nil {
-				return err
-			}
-			if len(r) > 0 {
-				// generate a list of pid strings
-				refs := make([]string, 0)
-				for _, v := range r {
-					if v.ID != "" {
-						refs = append(refs, v.ID)
-					}
-				}
-				references, err := FindWorksByPids(app.Dao(), refs...)
-				if err != nil {
-					return err
-				}
-				if len(references) > 0 {
-					work.References, err = json.Marshal(references)
-					if err != nil {
-						return err
-					}
-					// if err := app.Dao().Save(work); err != nil {
-					// 	return err
-					// }
-				}
-				// TODO: change how we store references in the works collection,
-				// should be a slice of strings instead of a slice of structs,
-				// and uses the pid as the key. This will enable simpler sql queries.
-				// citations, err := FindWorksByCitation(app.Dao(), pid)
-				// if err != nil {
-				// 	return err
-				// }
-				// if len(citations) > 0 {
-				// 	log.Printf("Citations: %+v\n", citations)
-				// }
-			}
+			// var r []Reference
+			// err = json.Unmarshal(work.References, &r)
+			// if err != nil {
+			// 	return err
+			// }
+			// if len(r) > 0 {
+			// 	// generate a list of pid strings
+			// 	refs := make([]string, 0)
+			// 	for _, v := range r {
+			// 		if v.ID != "" {
+			// 			refs = append(refs, v.ID)
+			// 		}
+			// 	}
+			// 	references, err := FindWorksByPids(app.Dao(), refs...)
+			// 	if err != nil {
+			// 		return err
+			// 	}
+			// 	if len(references) > 0 {
+			// 		work.References, err = json.Marshal(references)
+			// 		if err != nil {
+			// 			return err
+			// 		}
+			// 		// if err := app.Dao().Save(work); err != nil {
+			// 		// 	return err
+			// 		// }
+			// 	}
+			// TODO: change how we store references in the works collection,
+			// should be a slice of strings instead of a slice of structs,
+			// and uses the pid as the key. This will enable simpler sql queries.
+			// citations, err := FindWorksByCitation(app.Dao(), pid)
+			// if err != nil {
+			// 	return err
+			// }
+			// if len(citations) > 0 {
+			// 	log.Printf("Citations: %+v\n", citations)
+			// }
+			// }
 
 			// extract files and look up their metadata
 			var f []File
