@@ -234,43 +234,43 @@ func main() {
 			}
 
 			// extract pids of references and look up their metadata
-			// var r []Reference
-			// err = json.Unmarshal(work.References, &r)
-			// if err != nil {
-			// 	return err
-			// }
-			// if len(r) > 0 {
-			// 	// generate a list of pid strings
-			// 	refs := make([]string, 0)
-			// 	for _, v := range r {
-			// 		if v.ID != "" {
-			// 			refs = append(refs, v.ID)
-			// 		}
-			// 	}
-			// 	references, err := FindWorksByPids(app.Dao(), refs...)
-			// 	if err != nil {
-			// 		return err
-			// 	}
-			// 	if len(references) > 0 {
-			// 		work.References, err = json.Marshal(references)
-			// 		if err != nil {
-			// 			return err
-			// 		}
-			// 		// if err := app.Dao().Save(work); err != nil {
-			// 		// 	return err
-			// 		// }
-			// 	}
-			// TODO: change how we store references in the works collection,
-			// should be a slice of strings instead of a slice of structs,
-			// and uses the pid as the key. This will enable simpler sql queries.
-			// citations, err := FindWorksByCitation(app.Dao(), pid)
-			// if err != nil {
-			// 	return err
-			// }
-			// if len(citations) > 0 {
-			// 	log.Printf("Citations: %+v\n", citations)
-			// }
-			// }
+			var r []Reference
+			err = json.Unmarshal(work.References, &r)
+			if err != nil {
+				return err
+			}
+			if len(r) > 0 {
+				// generate a list of pid strings
+				refs := make([]string, 0)
+				for _, v := range r {
+					if v.ID != "" {
+						refs = append(refs, v.ID)
+					}
+				}
+				references, err := FindWorksByPids(app.Dao(), refs...)
+				if err != nil {
+					return err
+				}
+				if len(references) > 0 {
+					work.References, err = json.Marshal(references)
+					if err != nil {
+						return err
+					}
+					// if err := app.Dao().Save(work); err != nil {
+					// 	return err
+					// }
+				}
+				// TODO: change how we store references in the works collection,
+				// should be a slice of strings instead of a slice of structs,
+				// and uses the pid as the key. This will enable simpler sql queries.
+				// citations, err := FindWorksByCitation(app.Dao(), pid)
+				// if err != nil {
+				// 	return err
+				// }
+				// if len(citations) > 0 {
+				// 	log.Printf("Citations: %+v\n", citations)
+				// }
+			}
 
 			// extract files and look up their metadata
 			var f []File
