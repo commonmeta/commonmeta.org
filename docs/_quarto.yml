@@ -29,7 +29,7 @@ website:
       - use-cases.qmd
       - schema.qmd
   page-footer:
-    left: "Copyright &copy;2023-2024 Commonmeta."
+    left: "Copyright &copy;2023-2025 Commonmeta."
     right:
       - icon: envelope
         href: mailto:info@front-matter.io
