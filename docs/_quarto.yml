@@ -8,7 +8,7 @@ project:
 execute:
   freeze: true
 website:
-  title: "Commonmeta Docs"
+  title: "Commonmeta Documentation"
   favicon: favicon.ico
   site-url: https://docs.commonmeta.org
   repo-url: https://github.com/commonmeta/commonmeta
