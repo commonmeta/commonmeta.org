@@ -92,7 +92,7 @@ func main() {
 		})
 		// serves static files from the provided public dir (if exists)
 		e.Router.GET("/commonmeta_v0.14.json", func(c echo.Context) error {
-			return c.Redirect(http.StatusTemporaryRedirect, "https://docs.commonmeta.org/commonmeta_v0.14.json")
+			return c.Redirect(http.StatusTemporaryRedirect, "https://docs.commonmeta.org/commonmeta_v0.15.json")
 		})
 		e.Router.GET("/challenges.html", func(c echo.Context) error {
 			return c.Redirect(http.StatusMovedPermanently, "https://docs.commonmeta.org/challenges.html")
