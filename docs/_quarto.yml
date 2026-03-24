@@ -32,9 +32,9 @@ website:
     left: "Copyright &copy;2023-2025 Commonmeta."
     right:
       - icon: envelope
-        href: mailto:info@front-matter.io
-      - icon: mastodon 
-        href: https://indieweb.social/@commonmeta
+        href: mailto:info@front-matter.de
+      - icon: mastodon
+        href: https://hachyderm.io/@mfenner
 
 format:
   html:
